@@ -1,4 +1,4 @@
-# tec-BUFFERED-RING-REGISTER-
+# tec-BUFFERED-RING-REGISTER
 A TEC-1 circular buffer for addons
 
 https://en.wikipedia.org/wiki/Circular_buffer
