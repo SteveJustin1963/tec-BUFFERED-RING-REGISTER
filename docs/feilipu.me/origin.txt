@@ -1,0 +1,12 @@
+Uri: https://feilipu.me/2018/05/28/three-rings-for-the-z80/
+File Name: C:\Users\steve\Desktop\New folder (2)\docs\feilipu.me\2018\05\28\three-rings-for-the-z80\index.html
+Content Type: text/html
+
+Uri: https://feilipu.me/2018/05/28/three-rings-for-the-z80/feed/
+File Name: C:\Users\steve\Desktop\New folder (2)\docs\feilipu.me\2018\05\28\three-rings-for-the-z80\feed\index.rss
+Content Type: application/rss+xml
+
+Uri: https://feilipu.me/2018/05/28/three-rings-for-the-z80/amp/
+File Name: C:\Users\steve\Desktop\New folder (2)\docs\feilipu.me\2018\05\28\three-rings-for-the-z80\amp\index.html
+Content Type: text/html
+

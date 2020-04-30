@@ -1,0 +1,980 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<title>Three Rings for the Z80 | feilipu</title>
+<link rel="profile" href="http://gmpg.org/xfn/11">
+<link rel="pingback" href="https://feilipu.me/xmlrpc.php">
+<!--[if lt IE 9]>
+<script src="https://s2.wp.com/wp-content/themes/pub/truly-minimal/js/html5.js" type="text/javascript"></script>
+<![endif]-->
+
+<meta name="google-site-verification" content="WhNeY08tXXNrxs-n68adY6XcUJ9wi1y4nHBVBg55pcA">
+
+<!-- Async WordPress.com Remote Login -->
+<script id="wpcom_remote_login_js">
+var wpcom_remote_login_extra_auth = '';
+function wpcom_remote_login_remove_dom_node_id( element_id ) {
+	var dom_node = document.getElementById( element_id );
+	if ( dom_node ) { dom_node.remove(); }
+}
+function wpcom_remote_login_remove_dom_node_classes( class_name ) {
+	var dom_nodes = document.querySelectorAll( '.' + class_name );
+	for ( var i = 0; i < dom_nodes.length; i++ ) {
+		dom_nodes[i].remove();
+	}
+}
+function wpcom_remote_login_final_cleanup() {
+	wpcom_remote_login_remove_dom_node_classes( "wpcom_remote_login_msg" );
+	wpcom_remote_login_remove_dom_node_id( "wpcom_remote_login_key" );
+	wpcom_remote_login_remove_dom_node_id( "wpcom_remote_login_validate" );
+	wpcom_remote_login_remove_dom_node_id( "wpcom_remote_login_js" );
+	wpcom_remote_login_remove_dom_node_id( "wpcom_request_access_iframe" );
+	wpcom_remote_login_remove_dom_node_id( "wpcom_request_access_styles" );
+}
+
+// Watch for messages back from the remote login
+window.addEventListener( "message", function( e ) {
+	if ( e.origin === "https://r-login.wordpress.com" ) {
+		var data = {};
+		try {
+			data = JSON.parse( e.data );
+		} catch( e ) {
+			wpcom_remote_login_final_cleanup();
+			return;
+		}
+
+		if ( data.msg === 'LOGIN' ) {
+			// Clean up the login check iframe
+			wpcom_remote_login_remove_dom_node_id( "wpcom_remote_login_key" );
+
+			var id_regex = new RegExp( /^[0-9]+$/ );
+			var token_regex = new RegExp( /^.*|.*|.*$/ );
+			if (
+				token_regex.test( data.token )
+				&& id_regex.test( data.wpcomid )
+			) {
+				// We have everything we need to ask for a login
+				var script = document.createElement( "script" );
+				script.setAttribute( "id", "wpcom_remote_login_validate" );
+				script.src = '/remote-login.php?wpcom_remote_login=validate'
+					+ '&wpcomid=' + data.wpcomid
+					+ '&token=' + encodeURIComponent( data.token )
+					+ '&host=' + window.location.protocol
+						+ '//' + window.location.hostname;
+				document.body.appendChild( script );
+			}
+
+			return;
+		}
+
+		// Safari ITP, not logged in, so redirect
+		if ( data.msg === 'LOGIN-REDIRECT' ) {
+			window.location = 'https://wordpress.com/log-in?redirect_to=' + window.location.href;
+			return;
+		}
+
+		// Safari ITP, storage access failed, remove the request
+		if ( data.msg === 'LOGIN-REMOVE' ) {
+			var css_zap = 'html { -webkit-transition: margin-top 1s; transition: margin-top 1s; } /* 9001 */ html { margin-top: 0 !important; } * html body { margin-top: 0 !important; } @media screen and ( max-width: 782px ) { html { margin-top: 0 !important; } * html body { margin-top: 0 !important; } }';
+			var style_zap = document.createElement( 'style' );
+			style_zap.type = 'text/css';
+			style_zap.appendChild( document.createTextNode( css_zap ) );
+			document.body.appendChild( style_zap );
+
+			var e = document.getElementById( 'wpcom_request_access_iframe' );
+			e.parentNode.removeChild( e );
+
+			document.cookie = 'wordpress_com_login_access=denied; path=/; max-age=31536000';
+
+			return;
+		}
+
+		// Safari ITP
+		if ( data.msg === 'REQUEST_ACCESS' ) {
+			console.log( 'request access: safari' );
+
+			// Check ITP iframe enable/disable knob
+			if ( wpcom_remote_login_extra_auth !== 'safari_itp_iframe' ) {
+				return;
+			}
+
+			// If we are in a "private window" there is no ITP.
+			var private_window = false;
+			try {
+				var opendb = window.openDatabase( null, null, null, null );
+			} catch( e ) {
+				private_window = true;
+			}
+
+			if ( private_window ) {
+				console.log( 'private window' );
+				return;
+			}
+
+			var iframe = document.createElement( 'iframe' );
+			iframe.id = 'wpcom_request_access_iframe';
+			iframe.setAttribute( 'scrolling', 'no' );
+			iframe.setAttribute( 'sandbox', 'allow-storage-access-by-user-activation allow-scripts allow-same-origin allow-top-navigation-by-user-activation' );
+			iframe.src = 'https://r-login.wordpress.com/remote-login.php?wpcom_remote_login=request_access&origin=' + encodeURIComponent( data.origin ) + '&wpcomid=' + encodeURIComponent( data.wpcomid );
+
+			var css = 'html { -webkit-transition: margin-top 1s; transition: margin-top 1s; } /* 9001 */ html { margin-top: 46px !important; } * html body { margin-top: 46px !important; } @media screen and ( max-width: 660px ) { html { margin-top: 71px !important; } * html body { margin-top: 71px !important; } #wpcom_request_access_iframe { display: block; height: 71px !important; } } #wpcom_request_access_iframe { border: 0px; height: 46px; position: fixed; top: 0; left: 0; width: 100%; min-width: 100%; z-index: 99999; background: #23282d; } ';
+
+			var style = document.createElement( 'style' );
+			style.type = 'text/css';
+			style.id = 'wpcom_request_access_styles';
+			style.appendChild( document.createTextNode( css ) );
+			document.body.appendChild( style );
+
+			document.body.appendChild( iframe );
+		}
+
+		if ( data.msg === 'DONE' ) {
+			wpcom_remote_login_final_cleanup();
+		}
+	}
+}, false );
+
+// Inject the remote login iframe after the page has had a chance to load
+// more critical resources
+window.addEventListener( "DOMContentLoaded", function( e ) {
+	var iframe = document.createElement( "iframe" );
+	iframe.style.display = "none";
+	iframe.setAttribute( "scrolling", "no" );
+	iframe.setAttribute( "id", "wpcom_remote_login_key" );
+	iframe.src = "https://r-login.wordpress.com/remote-login.php"
+		+ "?wpcom_remote_login=key"
+		+ "&origin=aHR0cHM6Ly9mZWlsaXB1Lm1l"
+		+ "&wpcomid=47691308"
+		+ "&time=1588241425";
+	document.body.appendChild( iframe );
+}, false );
+</script>
+<link rel='dns-prefetch' href='//s1.wp.com'>
+<link rel='dns-prefetch' href='//s2.wp.com'>
+<link rel='dns-prefetch' href='//feilipu.wordpress.com'>
+<link rel='dns-prefetch' href='//s0.wp.com'>
+<link rel='dns-prefetch' href='//fonts.googleapis.com'>
+<link rel="alternate" type="application/rss+xml" title="feilipu &raquo; Feed" href="https://feilipu.me/feed/">
+<link rel="alternate" type="application/rss+xml" title="feilipu &raquo; Comments Feed" href="https://feilipu.me/comments/feed/">
+<link rel="alternate" type="application/rss+xml" title="feilipu &raquo; Three Rings for the&nbsp;Z80 Comments Feed" href="feed\index.rss">
+	<script type="text/javascript">
+		/* <![CDATA[ */
+		function addLoadEvent(func) {
+			var oldonload = window.onload;
+			if (typeof window.onload != 'function') {
+				window.onload = func;
+			} else {
+				window.onload = function () {
+					oldonload();
+					func();
+				}
+			}
+		}
+		/* ]]> */
+	</script>
+			<script type="text/javascript">
+			window._wpemojiSettings = {"baseUrl":"https:\/\/s0.wp.com\/wp-content\/mu-plugins\/wpcom-smileys\/twemoji\/2\/72x72\/","ext":".png","svgUrl":"https:\/\/s0.wp.com\/wp-content\/mu-plugins\/wpcom-smileys\/twemoji\/2\/svg\/","svgExt":".svg","source":{"concatemoji":"https:\/\/s0.wp.com\/wp-includes\/js\/wp-emoji-release.min.js?m=1582709031h&ver=5.4.1-RC1-47624"}};
+			/*! This file is auto-generated */
+			!function(e,a,t){var r,n,o,i,p=a.createElement("canvas"),s=p.getContext&&p.getContext("2d");function c(e,t){var a=String.fromCharCode;s.clearRect(0,0,p.width,p.height),s.fillText(a.apply(this,e),0,0);var r=p.toDataURL();return s.clearRect(0,0,p.width,p.height),s.fillText(a.apply(this,t),0,0),r===p.toDataURL()}function l(e){if(!s||!s.fillText)return!1;switch(s.textBaseline="top",s.font="600 32px Arial",e){case"flag":return!c([127987,65039,8205,9895,65039],[127987,65039,8203,9895,65039])&&(!c([55356,56826,55356,56819],[55356,56826,8203,55356,56819])&&!c([55356,57332,56128,56423,56128,56418,56128,56421,56128,56430,56128,56423,56128,56447],[55356,57332,8203,56128,56423,8203,56128,56418,8203,56128,56421,8203,56128,56430,8203,56128,56423,8203,56128,56447]));case"emoji":return!c([55357,56424,55356,57342,8205,55358,56605,8205,55357,56424,55356,57340],[55357,56424,55356,57342,8203,55358,56605,8203,55357,56424,55356,57340])}return!1}function d(e){var t=a.createElement("script");t.src=e,t.defer=t.type="text/javascript",a.getElementsByTagName("head")[0].appendChild(t)}for(i=Array("flag","emoji"),t.supports={everything:!0,everythingExceptFlag:!0},o=0;o<i.length;o++)t.supports[i[o]]=l(i[o]),t.supports.everything=t.supports.everything&&t.supports[i[o]],"flag"!==i[o]&&(t.supports.everythingExceptFlag=t.supports.everythingExceptFlag&&t.supports[i[o]]);t.supports.everythingExceptFlag=t.supports.everythingExceptFlag&&!t.supports.flag,t.DOMReady=!1,t.readyCallback=function(){t.DOMReady=!0},t.supports.everything||(n=function(){t.readyCallback()},a.addEventListener?(a.addEventListener("DOMContentLoaded",n,!1),e.addEventListener("load",n,!1)):(e.attachEvent("onload",n),a.attachEvent("onreadystatechange",function(){"complete"===a.readyState&&t.readyCallback()})),(r=t.source||{}).concatemoji?d(r.concatemoji):r.wpemoji&&r.twemoji&&(d(r.twemoji),d(r.wpemoji)))}(window,document,window._wpemojiSettings);
+		</script>
+		<style type="text/css">
+img.wp-smiley,
+img.emoji {
+	display: inline !important;
+	border: none !important;
+	box-shadow: none !important;
+	height: 1em !important;
+	width: 1em !important;
+	margin: 0 .07em !important;
+	vertical-align: -0.1em !important;
+	background: none !important;
+	padding: 0 !important;
+}
+</style>
+	<link rel='stylesheet' id='all-css-0-1' href='https://s2.wp.com/_static/??-eJylU9tuwyAM/aERJ926pg9TvwUSL6M1AYFZlb8fDekWNWsqbW/Y5lzkA3B2orE9Y89gonAUO90HOLvGGhGMJhxuqqIJ4QlmsCvmPRKJoBkFtpp1301sUL/sd5tNuYXEYmwPrQ48nRdkMw8eSTK2wtnAN9UajPQJAxyRnWxOYqzuWu5iKhX6Lk08wq6oiwpU1NSCIjvClZd+gMAD4Zqq82h0NN+j3wFL3VFmZlcONrLovG7/SuHlZffhAfxxWIm2y9vOCjm2T43nu6SNnbxUxaYsKjG+m4zLgyKbGjf8D2vZFSXeubXb7lpcl7hT3zjJlxsmKUkkNOnaGix/BKVS2iGIa+b8kYDLR5bb4KIC9pEGYXSvjaSfZA7mrdrWdbl/3pevxy82GVGi?cssminify=yes' type='text/css' media='all'>
+<style id='wp-block-library-inline-css'>
+.has-text-align-justify {
+	text-align:justify;
+}
+</style>
+<link crossorigin="anonymous" rel='stylesheet' id='truly-minimal-droid-serif-css' href='https://fonts.googleapis.com/css?family=Droid+Serif%3A400%2C700%2C400italic%2C700italic&#038;ver=5.4.1-RC1-47624' media='all'>
+<link crossorigin="anonymous" rel='stylesheet' id='truly-minimal-droid-sans-css' href='https://fonts.googleapis.com/css?family=Droid+Sans%3A400%2C700&#038;ver=5.4.1-RC1-47624' media='all'>
+<link rel='stylesheet' id='all-css-4-1' href='https://s0.wp.com/_static/??-eJx9y0EOwjAMRNELYSxEqegCcZY0MsHIsaPEUdXbt+zKht18aR4uBaKpkzr6mzI1LH1Gr11WyKycgyBrxOarECwlWj7H1k54gLlDkZ5YGyYyEIvB2fQn4CWB6z9aaRZL+0y4vw75Rc/8uAz3620Yp3H6bKY3Q10=?cssminify=yes' type='text/css' media='all'>
+<link rel='stylesheet' id='print-css-5-1' href='https://s2.wp.com/wp-content/mu-plugins/global-print/global-print.css?m=1465851035h&cssminify=yes' type='text/css' media='print'>
+<link rel='stylesheet' id='all-css-6-1' href='https://s1.wp.com/_static/??-eJx9jtEOgjAMRX/IWTEswIPxW8Yco1pWQkuMf+9MIGJIfGqbnHt74Dkaz0lDUhhmM9IcMQk4r8ipddN3O3qRA2zwle1mIiOowYQbKqa4tEBdNtX5fLIQiVuXGX1REBB1ih5acumxK904jCxqOnI4gfRuysXr/JcS9ph/EUf+PXYh7cOQdfpy8fsA1+FS2LqyVWNtcX8DZVpolw==?cssminify=yes' type='text/css' media='all'>
+<style id='jetpack-global-styles-frontend-style-inline-css'>
+:root { --font-headings: unset; --font-base: unset; --font-headings-default: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Oxygen-Sans,Ubuntu,Cantarell,"Helvetica Neue",sans-serif; --font-base-default: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Oxygen-Sans,Ubuntu,Cantarell,"Helvetica Neue",sans-serif;}
+</style>
+<script>
+var related_posts_js_options = {"post_heading":"h4"};
+</script>
+<script type='text/javascript' src='https://s2.wp.com/_static/??-eJx9jMEOwjAMQ3+IruzABgfEt4wtVKmatDSNpv39ggSXHZAsWbae7dfikOekC4iPprdC3b7WRTn5f4AjDHVq0BHyD54zN+D2YSk/MYFTgToF6+zolY8cqStJA7L4CsnOFleytEOy1YPu/WXsb+dxGK5xB1+BRFU='></script>
+<link rel='stylesheet' id='all-css-0-2' href='https://s0.wp.com/wp-content/mu-plugins/highlander-comments/style.css?m=1530132353h&cssminify=yes' type='text/css' media='all'>
+<!--[if lt IE 8]>
+<link rel='stylesheet' id='highlander-comments-ie7-css'  href='https://s2.wp.com/wp-content/mu-plugins/highlander-comments/style-ie7.css?m=1351637563h&#038;ver=20110606' media='all' />
+<![endif]-->
+<link rel="EditURI" type="application/rsd+xml" title="RSD" href="https://feilipu.wordpress.com/xmlrpc.php?rsd">
+<link rel="wlwmanifest" type="application/wlwmanifest+xml" href="https://s1.wp.com/wp-includes/wlwmanifest.xml"> 
+<link rel='prev' title='Old Sunshine &#8211; migrating Ultra5 to&nbsp;Sparc64' href='https://feilipu.me/2018/04/14/old-sunshine-migrating-ultra5-to-sparc64/'>
+<meta name="generator" content="WordPress.com">
+<link rel="canonical" href="index.html">
+<link rel='shortlink' href='https://wp.me/p3e6GE-bRY9N'>
+<link rel="alternate" type="application/json+oembed" href="https://public-api.wordpress.com/oembed/?format=json&amp;url=https%3A%2F%2Ffeilipu.me%2F2018%2F05%2F28%2Fthree-rings-for-the-z80%2F&amp;for=wpcom-auto-discovery"><link rel="alternate" type="application/xml+oembed" href="https://public-api.wordpress.com/oembed/?format=xml&amp;url=https%3A%2F%2Ffeilipu.me%2F2018%2F05%2F28%2Fthree-rings-for-the-z80%2F&amp;for=wpcom-auto-discovery">
+<!-- Jetpack Open Graph Tags -->
+<meta property="og:type" content="article">
+<meta property="og:title" content="Three Rings for the Z80">
+<meta property="og:url" content="https://feilipu.me/2018/05/28/three-rings-for-the-z80/">
+<meta property="og:description" content="Over the past few years I&#8217;ve implemented a number of interfaces for Z80 peripherals based on the principal of the interrupt driven ring buffer. Each implementation of a ring exhibits its own …">
+<meta property="article:published_time" content="2018-05-28T11:13:02+00:00">
+<meta property="article:modified_time" content="2018-08-08T12:33:22+00:00">
+<meta property="og:site_name" content="feilipu">
+<meta property="og:image" content="https://feilipu.files.wordpress.com/2018/05/unico_anello.png">
+<meta property="og:image:width" content="2240">
+<meta property="og:image:height" content="1939">
+<meta property="og:locale" content="en_US">
+<meta name="twitter:site" content="@wordpressdotcom">
+<meta name="twitter:text:title" content="Three Rings for the&nbsp;Z80">
+<meta name="twitter:card" content="summary">
+<meta property="article:publisher" content="https://www.facebook.com/WordPresscom">
+
+<!-- End Jetpack Open Graph Tags -->
+<link rel="shortcut icon" type="image/x-icon" href="https://secure.gravatar.com/blavatar/2c4c433db8fa21afff1d02c748721d04?s=32" sizes="16x16">
+<link rel="icon" type="image/x-icon" href="https://secure.gravatar.com/blavatar/2c4c433db8fa21afff1d02c748721d04?s=32" sizes="16x16">
+<link rel="apple-touch-icon" href="https://secure.gravatar.com/blavatar/2c4c433db8fa21afff1d02c748721d04?s=114">
+<link rel='openid.server' href='https://feilipu.me/?openidserver=1'>
+<link rel='openid.delegate' href='https://feilipu.me/'>
+<link rel="search" type="application/opensearchdescription+xml" href="https://feilipu.me/osd.xml" title="feilipu">
+<link rel="search" type="application/opensearchdescription+xml" href="https://s1.wp.com/opensearch.xml" title="WordPress.com">
+<meta name="theme-color" content="#ffffff">
+<style type="text/css">.recentcomments a{display:inline !important;padding:0 !important;margin:0 !important;}</style>		<style type="text/css">
+			.recentcomments a {
+				display: inline !important;
+				padding: 0 !important;
+				margin: 0 !important;
+			}
+
+			table.recentcommentsavatartop img.avatar, table.recentcommentsavatarend img.avatar {
+				border: 0px;
+				margin: 0;
+			}
+
+			table.recentcommentsavatartop a, table.recentcommentsavatarend a {
+				border: 0px !important;
+				background-color: transparent !important;
+			}
+
+			td.recentcommentsavatarend, td.recentcommentsavatartop {
+				padding: 0px 0px 1px 0px;
+				margin: 0px;
+			}
+
+			td.recentcommentstextend {
+				border: none !important;
+				padding: 0px 0px 2px 10px;
+			}
+
+			.rtl td.recentcommentstextend {
+				padding: 0px 10px 2px 0px;
+			}
+
+			td.recentcommentstexttop {
+				border: none;
+				padding: 0px 0px 0px 10px;
+			}
+
+			.rtl td.recentcommentstexttop {
+				padding: 0px 10px 0px 0px;
+			}
+		</style>
+		<style type="text/css">
+.widget_twitter li {
+	word-wrap: break-word;
+}
+</style>
+<meta name="application-name" content="feilipu"><meta name="msapplication-window" content="width=device-width;height=device-height"><meta name="msapplication-tooltip" content="Stuff I need to write down."><meta name="msapplication-task" content="name=Subscribe;action-uri=https://feilipu.me/feed/;icon-uri=https://secure.gravatar.com/blavatar/2c4c433db8fa21afff1d02c748721d04?s=16"><meta name="msapplication-task" content="name=Sign up for a free blog;action-uri=http://wordpress.com/signup/;icon-uri=https://s1.wp.com/i/favicon.ico"><meta name="msapplication-task" content="name=WordPress.com Support;action-uri=http://support.wordpress.com/;icon-uri=https://s1.wp.com/i/favicon.ico"><meta name="msapplication-task" content="name=WordPress.com Forums;action-uri=http://forums.wordpress.com/;icon-uri=https://s1.wp.com/i/favicon.ico"><meta name="description" content="Over the past few years I&#039;ve implemented a number of interfaces for Z80 peripherals based on the principal of the interrupt driven ring buffer. Each implementation of a ring exhibits its own peculiarities, based on the specific hardware. But essentially I have but one ring to bring them all and in the darkness bind them.&hellip;">
+<link rel="amphtml" href="amp\index.html"></head>
+
+<body class="post-template-default single single-post postid-175402327 single-format-standard customizer-styles-applied sidebar-right highlander-enabled highlander-light">
+<div id="page" class="hfeed site">
+		<header id="masthead" class="site-header clear" role="banner">
+		<hgroup>
+							<a href="https://feilipu.me/" title="feilipu" rel="home">
+					<img src="https://feilipu.files.wordpress.com/2013/02/copy-cropped-background_image1.jpg" width="974" height="240" alt="">
+				</a>
+						<h1 class="site-title"><a href="https://feilipu.me/" title="feilipu" rel="home">feilipu</a></h1>
+			<h2 class="site-description">Stuff I need to write down.</h2>
+		</hgroup>
+
+		<nav id="site-navigation" class="navigation-main" role="navigation">
+			<h1 class="menu-toggle">Menu</h1>
+			<div class="screen-reader-text skip-link"><a href="#content" title="Skip to content">Skip to content</a></div>
+
+			<div class="menu"><ul>
+<li><a href="https://feilipu.me/">Home</a></li><li class="page_item page-item-1"><a href="https://feilipu.me/about/">About</a></li>
+</ul></div>
+		</nav><!-- #site-navigation -->
+	</header><!-- #masthead -->
+
+	<div id="main" class="site-main">
+
+	<div id="primary" class="content-area">
+		<div id="content" class="site-content" role="main">
+
+		
+			
+<article id="post-175402327" class="post-175402327 post type-post status-publish format-standard hentry category-uncategorized tag-am9 tag-am9511a tag-assembly tag-interfaces tag-ring-buffer tag-serial tag-uart tag-usart tag-z180 tag-z80 tag-z88dk tag-zilog">
+	<header class="entry-header">
+		<h1 class="entry-title">Three Rings for the&nbsp;Z80</h1>
+		<div class="entry-meta">
+			Posted on <a href="index.html" title="21:13" rel="bookmark"><time class="entry-date" datetime="2018-05-28T21:13:02+10:00">May 28, 2018</time></a><span class="byline"> by <span class="author vcard"><a class="url fn n" href="https://feilipu.me/author/feilipu/" title="View all posts by feilipu" rel="author">feilipu</a></span></span>		</div><!-- .entry-meta -->
+	</header><!-- .entry-header -->
+
+	<div class="entry-content">
+		<p><a href="https://feilipu.files.wordpress.com/2018/05/unico_anello.png"><img data-attachment-id="175402331" data-permalink="https://feilipu.me/2018/05/28/three-rings-for-the-z80/unico_anello/#main" data-orig-file="https://feilipu.files.wordpress.com/2018/05/unico_anello.png" data-orig-size="2240,1939" data-comments-opened="1" data-image-meta="{&quot;aperture&quot;:&quot;0&quot;,&quot;credit&quot;:&quot;&quot;,&quot;camera&quot;:&quot;&quot;,&quot;caption&quot;:&quot;&quot;,&quot;created_timestamp&quot;:&quot;0&quot;,&quot;copyright&quot;:&quot;&quot;,&quot;focal_length&quot;:&quot;0&quot;,&quot;iso&quot;:&quot;0&quot;,&quot;shutter_speed&quot;:&quot;0&quot;,&quot;title&quot;:&quot;&quot;,&quot;orientation&quot;:&quot;0&quot;}" data-image-title="Unico_Anello" data-image-description="" data-medium-file="https://feilipu.files.wordpress.com/2018/05/unico_anello.png?w=300" data-large-file="https://feilipu.files.wordpress.com/2018/05/unico_anello.png?w=630" class=" wp-image-175402331 alignright" src="https://feilipu.files.wordpress.com/2018/05/unico_anello.png?w=151&#038;h=131" alt="" width="151" height="131" srcset="https://feilipu.files.wordpress.com/2018/05/unico_anello.png?w=151&amp;h=131,https://feilipu.files.wordpress.com/2018/05/unico_anello.png?w=302&amp;h=262" sizes="(max-width: 151px) 100vw, 151px"></a>Over the past few years I&#8217;ve implemented a number of interfaces for Z80 peripherals based on the principal of the interrupt driven ring buffer. Each implementation of a ring exhibits its own peculiarities, based on the specific hardware. But essentially I have but one ring to bring them all and in the darkness bind them.</p>
+<p>This is some background on how these interfaces work, why they&#8217;re probably fairly optimal at what they do, and things to consider if extending these to other platforms and devices.</p>
+<p>The ring buffer is a mechanism which allows a producer and a consumer of information to do so with a timing to suit their needs, and to do it without coordinating their timing.</p>
+<p>The Wikipedia defines a <a href="https://en.wikipedia.org/wiki/Circular_buffer" target="_blank" rel="noopener">circular buffer</a>, or ring buffer,  as a <a href="https://en.wikipedia.org/wiki/Data_structure" target="_blank" rel="noopener">data structure</a> that uses a single fixed-size <a href="https://en.wikipedia.org/wiki/Buffer_(computer_science)" target="_blank" rel="noopener">buffer</a> as if it were connected end-to-end. The most useful property of the ring buffer is that it does not need to have its elements relocated as they are added or consumed. It is best suited to be a <a href="https://en.wikipedia.org/wiki/FIFO_(computing_and_electronics)" target="_blank" rel="noopener">FIFO</a> buffer.</p>
+<h2>Background</h2>
+<p>Over the past few years, I&#8217;ve used the ring buffer mechanism written by <a href="https://github.com/feilipu/avrfreertos/blob/master/freeRTOS10xx/include/ringBuffer.h" target="_blank" rel="noopener">Dean Camera</a> in many <a href="https://github.com/feilipu/avrfreertos/blob/master/freeRTOS10xx/lib_io/serial.c#L1174" target="_blank" rel="noopener">AVR projects</a>. These include interrupt driven <a href="https://github.com/feilipu/avrfreertos/blob/master/freeRTOS10xx/lib_io/serial.c#L1174" target="_blank" rel="noopener">USART interfaces</a>, a digital <a href="https://github.com/feilipu/avrfreertos/blob/master/GA_Synth/main.c#L668" target="_blank" rel="noopener">audio delay</a> loop, and a <a href="https://github.com/feilipu/avrfreertos/blob/master/GA_WalkieTalkie/main.c#L290" target="_blank" rel="noopener">packet assembly and play-out</a> buffer for a digital walkie-talkie.</p>
+<p>More recently, I&#8217;ve been working with Z80 platforms and I&#8217;ve taken that experience into building interrupt driven ring buffer mechanisms for peripherals on the Z80 bus. These include three rings for three different USART implementations, and a fourth ring for an Am9511A APU.</p>
+<p><a href="https://feilipu.files.wordpress.com/2018/05/circular_buffer_animation.gif"><img data-attachment-id="175402332" data-permalink="https://feilipu.me/2018/05/28/three-rings-for-the-z80/circular_buffer_animation/#main" data-orig-file="https://feilipu.files.wordpress.com/2018/05/circular_buffer_animation.gif" data-orig-size="400,300" data-comments-opened="1" data-image-meta="{&quot;aperture&quot;:&quot;0&quot;,&quot;credit&quot;:&quot;&quot;,&quot;camera&quot;:&quot;&quot;,&quot;caption&quot;:&quot;&quot;,&quot;created_timestamp&quot;:&quot;0&quot;,&quot;copyright&quot;:&quot;&quot;,&quot;focal_length&quot;:&quot;0&quot;,&quot;iso&quot;:&quot;0&quot;,&quot;shutter_speed&quot;:&quot;0&quot;,&quot;title&quot;:&quot;&quot;,&quot;orientation&quot;:&quot;0&quot;}" data-image-title="Circular_Buffer_Animation" data-image-description="" data-medium-file="https://feilipu.files.wordpress.com/2018/05/circular_buffer_animation.gif?w=300" data-large-file="https://feilipu.files.wordpress.com/2018/05/circular_buffer_animation.gif?w=400" class="size-medium wp-image-175402332 alignright" src="https://feilipu.files.wordpress.com/2018/05/circular_buffer_animation.gif?w=300&#038;h=225" alt="" width="300" height="225"></a>But firstly, how does the ring buffer work? For the details, the Wikipedia entry on <a href="https://en.wikipedia.org/wiki/Circular_buffer" target="_blank" rel="noopener">circular buffers</a> is the best bet. But quickly, the information (usually a byte, but not necessarily) is pushed into the buffer by the producer, and it is removed by the consumer.</p>
+<p>The producer maintains a pointer to where it is inserting the data. The consumer maintains a pointer to where it is removing the data. Both producer and consumer have access to a count of how many items there are in the buffer and, critically, the act of counting entries present in the buffer and adding or removing data must be synchronised or <a href="https://en.wikipedia.org/wiki/Linearizability" target="_blank" rel="noopener">atomic</a>.</p>
+<h2>8 Bit Optimisation</h2>
+<p>The AVR example code is written in C and is not optimised for the Z80 platform. By using some platform specific design decisions it is possible to substantially optimise the operation of a general ring buffer, which is important as the Z80 is fairly slow.</p>
+<p>The first optimisation is to assume that the buffer is exactly one page or 256 bytes. The advantage we have there is that addressing in Z80 is 16 bits and if we&#8217;re only using the lowest 8 bits of addressing to address 256 bytes, then we simply need to align the buffer onto a single 256 byte page and then <a href="https://github.com/z88dk/z88dk/blob/master/libsrc/_DEVELOPMENT/target/rc2014/device/acia/acia_interrupt.asm#L34" target="_blank" rel="noopener">increment through the lowest byte</a> of the buffer address to manage the pointer access.</p>
+<p>If 256 bytes is too many to allocate to the buffer, then if we use a power of 2 buffer size, and then align the buffer within the memory so that it falls on the boundary of the buffer size, the calculation for the pointers becomes <a href="https://github.com/z88dk/z88dk/blob/master/libsrc/_DEVELOPMENT/target/rc2014/device/acia/acia_interrupt.asm#L58" target="_blank" rel="noopener">simple masking</a> (rather than a decision and jump). Simple masking ensures that no jumps are taken, which means that the code flow or delay is constant no matter which place in the buffer is been written or read.</p>
+<p>Note that although the number of bytes allocated to the buffer is 256, the buffer cannot be filled completely. A completely full 256 byte buffer cannot be discriminated from a zero fullness buffer. This does not apply where the buffer is smaller than the full page.</p>
+<p>With these two optimisations in place, we can now look at three implementations of USART interfaces for the Z80 platform. These are the <a href="http://www.cpcwiki.eu/imgs/3/3f/MC6850.pdf" target="_blank" rel="noopener">MC6580 ACIA</a> , the <a href="http://www.z80.info/zip/um0081.pdf" target="_blank" rel="noopener">Zilog SIO/2</a>, and the <a href="https://www-users.cs.york.ac.uk/~pcc/Circuits/64180/docs/z180faq.pdf" target="_blank" rel="noopener">Z180 ASCI</a> interface. There is also the <a href="http://www.cpushack.com/2010/09/23/arithmetic-processors-then-and-now/" target="_blank" rel="noopener">Am9511A</a> interface, which is a little special as it has multiple independent ring buffers, and has multi-byte insertion.</p>
+<h2>Implementations</h2>
+<p>To start the discussion, let us look at the ACIA implementation for the <a href="https://github.com/RC2014Z80/RC2014/blob/master/ROMs/CPM-IDE/acia/cpm22bios.asm" target="_blank" rel="noopener">RC2014 CP/M-IDE</a> bios. I have chosen this file because all of the functions are contained in one file, which provides an easier overview. The functions are identical to those found in the <a href="https://github.com/z88dk/z88dk/tree/master/libsrc/_DEVELOPMENT/target/rc2014/device/acia" target="_blank" rel="noopener">z88dk RC2014 ACIA</a> device directory.</p>
+<p>Using the ALIGN key word of the z88dk, the ring buffer itself is placed on a <a href="https://github.com/RC2014Z80/RC2014/blob/master/ROMs/CPM-IDE/acia/cpm22bios.asm#L1550" target="_blank" rel="noopener">page boundary</a>, in the case of the receive buffer of 256 bytes, and on the <a href="https://github.com/RC2014Z80/RC2014/blob/master/ROMs/CPM-IDE/acia/cpm22bios.asm#L1543" target="_blank" rel="noopener">buffer size boundary</a>, in the case of the transmit buffer of 2^n bytes.</p>
+<p>Note that although where the buffer is smaller than a full page all of the bytes in the buffer could be used, because the buffer counter won&#8217;t overflow, but I haven&#8217;t made that additional optimisation in my code. So no matter how many bytes are allocated to a buffer, one byte always remains unused.</p>
+<p>Once the buffer is located, the process of producing and consuming data is left to either <a href="https://github.com/RC2014Z80/RC2014/blob/master/ROMs/CPM-IDE/acia/cpm22bios.asm#L981" target="_blank" rel="noopener">put</a> or <a href="https://github.com/RC2014Z80/RC2014/blob/master/ROMs/CPM-IDE/acia/cpm22bios.asm#L920" target="_blank" rel="noopener">get</a> functions which write to, or read from the buffer as and when they choose to. There is no compulsion for the main program flow to write or read at a particular time, and therefore the flow of code is never delayed. This is optimum from the point of view of minimising delay and maximising compute time. Additional functions such as <a href="https://github.com/RC2014Z80/RC2014/blob/master/ROMs/CPM-IDE/acia/cpm22bios.asm#L898" target="_blank" rel="noopener">flush</a>, <a href="https://github.com/RC2014Z80/RC2014/blob/master/ROMs/CPM-IDE/acia/cpm22bios.asm#L956" target="_blank" rel="noopener">peek</a>, and <a href="https://github.com/RC2014Z80/RC2014/blob/master/ROMs/CPM-IDE/acia/cpm22bios.asm#L967" target="_blank" rel="noopener">poll</a> are also provided to simplify program flow, and <a href="https://github.com/RC2014Z80/RC2014/blob/master/ROMs/CPM-IDE/acia/cpm22bios.asm#L859" target="_blank" rel="noopener">init</a> to set up the peripheral and initialise the buffers on first use.</p>
+<p>With the buffer available then the <a href="https://github.com/RC2014Z80/RC2014/blob/master/ROMs/CPM-IDE/acia/cpm22bios.asm#L785" target="_blank" rel="noopener">interrupt</a> function can do its work. Once an interrupt from the peripheral is signalled, the interrupt code checks to see whether a byte has been received. If not then the interrupt (in the case of the ACIA and ASCI) must have been triggered by the transmit hardware becoming available.</p>
+<p>If in fact a byte has been received by the peripheral then the interrupt code recovers the byte, and checks there is room in the buffer to store it. If not, then the byte is simply abandoned. If there is space, then the byte is stored, and the buffer count is incremented. It is critical that these two items happen atomically, which in the case of an interrupt is the natural situation.</p>
+<p>If the transmission hardware has signalled that it is free, then the buffer is checked for an available byte to transmit. If none is found then the transmit interrupt is disabled. Otherwise the byte is retrieved from the buffer and written to the transmit hardware while the buffer count is decremented.</p>
+<p>If the transmit buffer count reaches zero when the current byte is transmitted, then the interrupt must disable further transmit interrupts to prevent the interrupt being called unnecessarily (i.e. with the buffer fullness being empty).</p>
+<h3>Multi-byte Receive</h3>
+<p>Both the SIO and ASCI have multi-byte hardware FIFO buffers available. This is to prevent over-run of the hardware should the CPU be unable to service the receive interrupt in sufficient time. This could happen if the CPU is left with its general interrupt disabled for some time.</p>
+<p>In this situation, the <a href="https://github.com/RC2014Z80/RC2014/blob/master/ROMs/CPM-IDE/sio/cpm22bios.asm#L844" target="_blank" rel="noopener">SIO receive interrupt</a> and the <a href="https://github.com/feilipu/yaz180/blob/master/yabios/asm_common1_driver.asm#L1339" target="_blank" rel="noopener">ASCI interrupt</a> have the capability to check for additional bytes before continuing.</p>
+<h3>Transmit cut-through</h3>
+<p>One additional feature worth discussing is the presence of a transmit cut-through, which minimises delay when writing the &#8220;first byte&#8221;. Because the Z80 processor is relatively slow compared to a serial interface, it is common for the transmit interface to be idle when the first byte of a sequence of bytes is written. In this situation writing the byte into the transmit buffer, and then signalling a pseudo interrupt (by calling the interrupt routine) would be very costly. In the case of the first byte it is much more effective simply to cut-through and <a href="https://github.com/RC2014Z80/RC2014/blob/master/ROMs/CPM-IDE/sio/cpm22bios.asm#L1187" target="_blank" rel="noopener">write directly</a> to the hardware.</p>
+<h3>Atomicity</h3>
+<p>For the ring buffer to function effectively, the <a href="https://en.wikipedia.org/wiki/Linearizability" target="_blank" rel="noopener">atomicity</a> of specific operations must be guaranteed. During an interrupt in Z80 further interrupts are typically not permitted, so within the interrupt we have a degree of atomicity. The only exception to this rule is the Z80 Non Maskable Interrupt (<a href="http://www.z80.info/zip/z80-interrupts_rewritten.pdf" target="_blank" rel="noopener">NMI</a>), but since this interrupt is not compatible with CP/M it has never been used widely and is therefore not a real issue.</p>
+<p>For the buffer get function the only concern is that the <a href="https://github.com/RC2014Z80/RC2014/blob/master/ROMs/CPM-IDE/acia/cpm22bios.asm#L934" target="_blank" rel="noopener">retrieval of a byte is atomically linked to the number of bytes</a> in the buffer.</p>
+<p>For the put function it is similar, however as the <a href="https://github.com/RC2014Z80/RC2014/blob/master/ROMs/CPM-IDE/acia/cpm22bios.asm#L1023" target="_blank" rel="noopener">transmit interrupt needs to be enabled</a> by the put function atomcity is required to ensure that this process is not interrupted.</p>
+<h3>Interrupt Mode</h3>
+<p>Across the three implementations there are three different Z80 interrupt modes in play. The Motorola ACIA is not a Zilog Z80 peripheral, so it can only signal a normal interrupt, and can therefore (without some dirty tricks) only work in Interrupt Mode 1. For the RC2014 implementation it is <a href="https://github.com/RC2014Z80/RC2014/blob/master/ROMs/CPM-IDE/acia/cpm22bios.asm#L151" target="_blank" rel="noopener">attached to INT or RST38</a> and therefore when an interrupt is triggered it is up to the interrupt routine to determine why an interrupt has been raised. This leads to a fairly long and slow interrupt code.</p>
+<p>The Z180 ASCI has two ports and is attached to the Z180 internal interrupt structure, which works effectively similarly to the Z80 Interrupt Mode 2, although it is actually independent from the Z80 interrupt mode. Each <a href="https://github.com/feilipu/yaz180/blob/master/yabios/asm_common1_driver.asm#L1305" target="_blank" rel="noopener">Z180 internal interrupt</a> is separately triggered, however it still cannot discern between a receive and a transmit event. So the interrupt handling is essentially similar to that of the ACIA.</p>
+<p>The Zilog SIO/2 is capable of being attached to the Z80 in Interrupt Mode 2. This means that the <a href="https://github.com/RC2014Z80/RC2014/blob/master/ROMs/CPM-IDE/sio/sio_init_async_rodata.asm#L25" target="_blank" rel="noopener">SIO is capable of being configured</a> to load the Z80 address lines during an interrupt with a specific vector for each interrupt cause. The interrupts for <a href="https://github.com/RC2014Z80/RC2014/blob/master/ROMs/CPM-IDE/sio/cpm22bios.asm#L772" target="_blank" rel="noopener">transmit empty</a>, <a href="https://github.com/RC2014Z80/RC2014/blob/master/ROMs/CPM-IDE/sio/cpm22bios.asm#L807" target="_blank" rel="noopener">received byte</a>, transmit error, and receive error are all signalled separately via an <a href="https://github.com/RC2014Z80/RC2014/blob/master/ROMs/CPM-IDE/sio/cpm22bios.asm#L1625" target="_blank" rel="noopener">IM2 Interrupt Vector Table</a>. This leads to concise and fast interrupts, specific to the cause at hand. The SIO/2 is the most efficient of all the interfaces described here.</p>
+<h3>Multi-byte buffers</h3>
+<p>For interest, the <a href="https://github.com/z88dk/z88dk/tree/master/libsrc/_DEVELOPMENT/target/yaz180/device/am9511a" target="_blank" rel="noopener">Am9511A interface</a> uses <a href="https://github.com/z88dk/z88dk/blob/master/libsrc/_DEVELOPMENT/target/yaz180/device/am9511a/__am9511a_data.asm" target="_blank" rel="noopener">two buffers</a>, one for the one byte commands, and one for the two byte operand pointers. The command buffer is loaded with actions that the APU needs to perform, including some special (non hardware) commands to support <a href="https://github.com/z88dk/z88dk/blob/master/libsrc/_DEVELOPMENT/target/yaz180/device/am9511a/am9511a_isr.asm#L59" target="_blank" rel="noopener">loading</a> and <a href="https://github.com/z88dk/z88dk/blob/master/libsrc/_DEVELOPMENT/target/yaz180/device/am9511a/am9511a_isr.asm#L122" target="_blank" rel="noopener">unloading operands</a> from the APU FILO.</p>
+<p>A second Am9511A interface also uses two buffers, one for one byte commands, and one for either <a href="https://github.com/feilipu/yaz180/blob/master/yabios/asm_common1_driver.asm#L976" target="_blank" rel="noopener">two</a> or <a href="https://github.com/feilipu/yaz180/blob/master/yabios/asm_common1_driver.asm#L987" target="_blank" rel="noopener">four</a> byte operands. This mechanism in not as nice as storing pointers as in the above driver, but is required for situations where the Z180 is operating with paged memory.</p>
+<p>I&#8217;ve revised this above solution again and do it with three <a href="https://github.com/z88dk/z88dk/commit/74093a424239e56a84b54ed827ef836497c0ae71" target="_blank" rel="noopener">byte operand (far) pointers</a>, as that makes for a much simplified user experience. The operands don&#8217;t have to be unloaded by the user. They simply appear auto-magically&#8230;</p>
+<div id="jp-post-flair" class="sharedaddy sd-like-enabled sd-sharing-enabled"><div class="sharedaddy sd-sharing-enabled"><div class="robots-nocontent sd-block sd-social sd-social-icon-text sd-sharing"><h3 class="sd-title">Share this:</h3><div class="sd-content"><ul><li class="share-twitter"><a rel="nofollow noopener noreferrer" data-shared="sharing-twitter-175402327" class="share-twitter sd-button share-icon" href="https://feilipu.me/2018/05/28/three-rings-for-the-z80/?share=twitter" target="_blank" title="Click to share on Twitter"><span>Twitter</span></a></li><li class="share-facebook"><a rel="nofollow noopener noreferrer" data-shared="sharing-facebook-175402327" class="share-facebook sd-button share-icon" href="https://feilipu.me/2018/05/28/three-rings-for-the-z80/?share=facebook" target="_blank" title="Click to share on Facebook"><span>Facebook</span></a></li><li class="share-end"></li></ul></div></div></div><div class='sharedaddy sd-block sd-like jetpack-likes-widget-wrapper jetpack-likes-widget-unloaded' id='like-post-wrapper-47691308-175402327-5eaaa4114d987' data-src='//widgets.wp.com/likes/index.html?ver=20190321#blog_id=47691308&amp;post_id=175402327&amp;origin=feilipu.wordpress.com&amp;obj_id=47691308-175402327-5eaaa4114d987&amp;domain=feilipu.me' data-name='like-post-frame-47691308-175402327-5eaaa4114d987'><h3 class='sd-title'>Like this:</h3><div class='likes-widget-placeholder post-likes-widget-placeholder' style='height: 55px;'><span class='button'><span>Like</span></span> <span class="loading">Loading...</span></div><span class='sd-text-color'></span><a class='sd-link-color'></a></div>
+<div id='jp-relatedposts' class='jp-relatedposts'>
+	<h3 class="jp-relatedposts-headline"><em>Related</em></h3>
+</div></div>			</div><!-- .entry-content -->
+
+	<footer class="entry-meta">
+		This entry was tagged <a href="https://feilipu.me/tag/am9/" rel="tag">Am9</a>, <a href="https://feilipu.me/tag/am9511a/" rel="tag">am9511a</a>, <a href="https://feilipu.me/tag/assembly/" rel="tag">assembly</a>, <a href="https://feilipu.me/tag/interfaces/" rel="tag">interfaces</a>, <a href="https://feilipu.me/tag/ring-buffer/" rel="tag">ring buffer</a>, <a href="https://feilipu.me/tag/serial/" rel="tag">serial</a>, <a href="https://feilipu.me/tag/uart/" rel="tag">uart</a>, <a href="https://feilipu.me/tag/usart/" rel="tag">usart</a>, <a href="https://feilipu.me/tag/z180/" rel="tag">Z180</a>, <a href="https://feilipu.me/tag/z80/" rel="tag">Z80</a>, <a href="https://feilipu.me/tag/z88dk/" rel="tag">z88dk</a>, <a href="https://feilipu.me/tag/zilog/" rel="tag">zilog</a>. Bookmark the <a href="index.html" title="Permalink to Three Rings for the&nbsp;Z80" rel="bookmark">permalink</a>.
+			</footer><!-- .entry-meta -->
+	</article><!-- #post-## -->
+
+				<nav role="navigation" id="nav-below" class="navigation-post">
+		<h1 class="screen-reader-text">Post navigation</h1>
+
+	
+		<div class="previous"><a href="https://feilipu.me/2018/04/14/old-sunshine-migrating-ultra5-to-sparc64/" rel="prev"><span class="meta-nav">&larr;</span> Old Sunshine &#8211; migrating Ultra5 to&nbsp;Sparc64</a></div>		
+	
+	</nav><!-- #nav-below -->
+	
+			
+
+	<div id="comments" class="comments-area">
+
+	
+			<h2 class="comments-title">
+			One thought on &ldquo;<span>Three Rings for the&nbsp;Z80</span>&rdquo;		</h2>
+
+		
+		<ol class="comment-list">
+				<li class="post pingback">
+		<p>Pingback: <a href='https://feilipu.me/2017/02/22/characterising-am9511a-1-apu/' rel='external nofollow ugc' class='url'>Characterising Am9511A-1 APU | feilipu</a></p>
+	</li><!-- #comment-## -->
+		</ol><!-- .comment-list -->
+
+		
+	
+	
+		<div id="respond" class="comment-respond">
+		<h3 id="reply-title" class="comment-reply-title">Leave a Reply <small><a rel="nofollow" id="cancel-comment-reply-link" href="index.html#respond" style="display:none;">Cancel reply</a></small></h3><form action="https://feilipu.me/wp-comments-post.php" method="post" id="commentform" class="comment-form"><input type="hidden" id="highlander_comment_nonce" name="highlander_comment_nonce" value="8b96879c41"><input type="hidden" name="_wp_http_referer" value="/2018/05/28/three-rings-for-the-z80/">
+<input type="hidden" name="hc_post_as" id="hc_post_as" value="guest">
+
+<div class="comment-form-field comment-textarea">
+	<label for="comment">Enter your comment here...</label>
+	<div id="comment-form-comment"><textarea id="comment" name="comment" title="Enter your comment here..."></textarea></div>
+</div>
+
+<div id="comment-form-identity">
+	<div id="comment-form-nascar">
+		<p>Fill in your details below or click an icon to log in:</p>
+		<ul>
+			<li class="selected" style="display:none;">
+				<a href="#comment-form-guest" id="postas-guest" class="nascar-signin-link" title="Login via Guest">
+									</a>
+			</li>
+			<li>
+				<a href="#comment-form-load-service:WordPress.com" id="postas-wordpress" class="nascar-signin-link" title="Login via WordPress.com">
+					<svg xmlns="http://www.w3.org/2000/svg" role="presentation" viewbox="0 0 24 24"><rect x="0" fill="none" width="24" height="24"></rect><g><path fill="#0087be" d="M12.158 12.786l-2.698 7.84c.806.236 1.657.365 2.54.365 1.047 0 2.05-.18 2.986-.51-.024-.037-.046-.078-.065-.123l-2.762-7.57zM3.008 12c0 3.56 2.07 6.634 5.068 8.092L3.788 8.342c-.5 1.117-.78 2.354-.78 3.658zm15.06-.454c0-1.112-.398-1.88-.74-2.48-.456-.74-.883-1.368-.883-2.11 0-.825.627-1.595 1.51-1.595.04 0 .078.006.116.008-1.598-1.464-3.73-2.36-6.07-2.36-3.14 0-5.904 1.613-7.512 4.053.21.008.41.012.58.012.94 0 2.395-.114 2.395-.114.484-.028.54.684.057.74 0 0-.487.058-1.03.086l3.275 9.74 1.968-5.902-1.4-3.838c-.485-.028-.944-.085-.944-.085-.486-.03-.43-.77.056-.742 0 0 1.484.114 2.368.114.94 0 2.397-.114 2.397-.114.486-.028.543.684.058.74 0 0-.488.058-1.03.086l3.25 9.665.897-2.997c.456-1.17.684-2.137.684-2.907zm1.82-3.86c.04.286.06.593.06.924 0 .912-.17 1.938-.683 3.22l-2.746 7.94c2.672-1.558 4.47-4.454 4.47-7.77 0-1.564-.4-3.033-1.1-4.314zM12 22C6.486 22 2 17.514 2 12S6.486 2 12 2s10 4.486 10 10-4.486 10-10 10z"></path></g></svg>				</a>
+			</li>
+			<li>
+				<a href="#comment-form-load-service:Twitter" id="postas-twitter" class="nascar-signin-link" title="Login via Twitter">
+					<svg xmlns="http://www.w3.org/2000/svg" role="presentation" viewbox="0 0 24 24"><rect x="0" fill="none" width="24" height="24"></rect><g><path fill="#1DA1F2" d="M22.23 5.924c-.736.326-1.527.547-2.357.646.847-.508 1.498-1.312 1.804-2.27-.793.47-1.67.812-2.606.996C18.325 4.498 17.258 4 16.078 4c-2.266 0-4.103 1.837-4.103 4.103 0 .322.036.635.106.935-3.41-.17-6.433-1.804-8.457-4.287-.353.607-.556 1.312-.556 2.064 0 1.424.724 2.68 1.825 3.415-.673-.022-1.305-.207-1.86-.514v.052c0 1.988 1.415 3.647 3.293 4.023-.344.095-.707.145-1.08.145-.265 0-.522-.026-.773-.074.522 1.63 2.038 2.817 3.833 2.85-1.404 1.1-3.174 1.757-5.096 1.757-.332 0-.66-.02-.98-.057 1.816 1.164 3.973 1.843 6.29 1.843 7.547 0 11.675-6.252 11.675-11.675 0-.178-.004-.355-.012-.53.802-.578 1.497-1.3 2.047-2.124z"></path></g></svg>				</a>
+			</li>
+			<li>
+				<a href="#comment-form-load-service:Facebook" id="postas-facebook" class="nascar-signin-link" title="Login via Facebook">
+					<svg xmlns="http://www.w3.org/2000/svg" role="presentation" viewbox="0 0 24 24"><rect x="0" fill="none" width="24" height="24"></rect><g><path fill="#3B5998" d="M20.007 3H3.993C3.445 3 3 3.445 3 3.993v16.013c0 .55.445.994.993.994h8.62v-6.97H10.27V11.31h2.346V9.31c0-2.325 1.42-3.59 3.494-3.59.993 0 1.847.073 2.096.106v2.43h-1.438c-1.128 0-1.346.537-1.346 1.324v1.734h2.69l-.35 2.717h-2.34V21h4.587c.548 0 .993-.445.993-.993V3.993c0-.548-.445-.993-.993-.993z"></path></g></svg>				</a>
+			</li>
+		</ul>
+	</div>
+
+	<div id="comment-form-guest" class="comment-form-service selected">
+		<div class="comment-form-padder">
+			<div class="comment-form-avatar">
+<a href="https://gravatar.com/site/signup/" target="_blank">				<img src="https://1.gravatar.com/avatar/ad516503a11cd5ca435acc9bb6523536?s=25&amp;d=identicon&amp;forcedefault=y&amp;r=G" alt="Gravatar" width="25" class="no-grav">
+</a>			</div>
+
+				<div class="comment-form-fields">
+				<div class="comment-form-field comment-form-email">
+					<label for="email">Email <span class="required">(required)</span> <span class="nopublish">(Address never made public)</span></label>
+					<div class="comment-form-input"><input id="email" name="email" type="email" value=""></div>
+				</div>
+				<div class="comment-form-field comment-form-author">
+					<label for="author">Name <span class="required">(required)</span></label>
+					<div class="comment-form-input"><input id="author" name="author" type="text" value=""></div>
+				</div>
+				<div class="comment-form-field comment-form-url">
+					<label for="url">Website</label>
+					<div class="comment-form-input"><input id="url" name="url" type="url" value=""></div>
+				</div>
+			</div>
+			
+		</div>
+	</div>
+
+	<div id="comment-form-wordpress" class="comment-form-service">
+		<div class="comment-form-padder">
+			<div class="comment-form-avatar">
+				<img src="https://1.gravatar.com/avatar/ad516503a11cd5ca435acc9bb6523536?s=25&amp;d=identicon&amp;forcedefault=y&amp;r=G" alt="WordPress.com Logo" width="25" class="no-grav">
+			</div>
+
+				<div class="comment-form-fields">
+				<input type="hidden" name="wp_avatar" id="wordpress-avatar" class="comment-meta-wordpress" value="">
+				<input type="hidden" name="wp_user_id" id="wordpress-user_id" class="comment-meta-wordpress" value="">
+				<input type="hidden" name="wp_access_token" id="wordpress-access_token" class="comment-meta-wordpress" value="">
+						<p class="comment-form-posting-as pa-wordpress">
+			<strong></strong>
+			You are commenting using your WordPress.com account.			<span class="comment-form-log-out">
+				(&nbsp;<a href="javascript:HighlanderComments.doExternalLogout( 'wordpress' );">Log&nbsp;Out</a>&nbsp;/&nbsp;
+				<a href="#" onclick="javascript:HighlanderComments.switchAccount();return false;">Change</a>&nbsp;)
+			</span>
+			<span class="pa-icon"><svg xmlns="http://www.w3.org/2000/svg" role="presentation" viewbox="0 0 24 24"><rect x="0" fill="none" width="24" height="24"></rect><g><path fill="#0087be" d="M12.158 12.786l-2.698 7.84c.806.236 1.657.365 2.54.365 1.047 0 2.05-.18 2.986-.51-.024-.037-.046-.078-.065-.123l-2.762-7.57zM3.008 12c0 3.56 2.07 6.634 5.068 8.092L3.788 8.342c-.5 1.117-.78 2.354-.78 3.658zm15.06-.454c0-1.112-.398-1.88-.74-2.48-.456-.74-.883-1.368-.883-2.11 0-.825.627-1.595 1.51-1.595.04 0 .078.006.116.008-1.598-1.464-3.73-2.36-6.07-2.36-3.14 0-5.904 1.613-7.512 4.053.21.008.41.012.58.012.94 0 2.395-.114 2.395-.114.484-.028.54.684.057.74 0 0-.487.058-1.03.086l3.275 9.74 1.968-5.902-1.4-3.838c-.485-.028-.944-.085-.944-.085-.486-.03-.43-.77.056-.742 0 0 1.484.114 2.368.114.94 0 2.397-.114 2.397-.114.486-.028.543.684.058.74 0 0-.488.058-1.03.086l3.25 9.665.897-2.997c.456-1.17.684-2.137.684-2.907zm1.82-3.86c.04.286.06.593.06.924 0 .912-.17 1.938-.683 3.22l-2.746 7.94c2.672-1.558 4.47-4.454 4.47-7.77 0-1.564-.4-3.033-1.1-4.314zM12 22C6.486 22 2 17.514 2 12S6.486 2 12 2s10 4.486 10 10-4.486 10-10 10z"></path></g></svg></span>
+		</p>
+					</div>
+	
+		</div>
+	</div>
+
+	<div id="comment-form-googleplus" class="comment-form-service">
+		<div class="comment-form-padder">
+			<div class="comment-form-avatar">
+				<img src="https://1.gravatar.com/avatar/ad516503a11cd5ca435acc9bb6523536?s=25&amp;d=identicon&amp;forcedefault=y&amp;r=G" alt="Google photo" width="25" class="no-grav">
+			</div>
+
+				<div class="comment-form-fields">
+				<input type="hidden" name="googleplus_avatar" id="googleplus-avatar" class="comment-meta-googleplus" value="">
+				<input type="hidden" name="googleplus_user_id" id="googleplus-user_id" class="comment-meta-googleplus" value="">
+				<input type="hidden" name="googleplus_access_token" id="googleplus-access_token" class="comment-meta-googleplus" value="">
+						<p class="comment-form-posting-as pa-googleplus">
+			<strong></strong>
+			You are commenting using your Google account.			<span class="comment-form-log-out">
+				(&nbsp;<a href="javascript:HighlanderComments.doExternalLogout( 'googleplus' );">Log&nbsp;Out</a>&nbsp;/&nbsp;
+				<a href="#" onclick="javascript:HighlanderComments.switchAccount();return false;">Change</a>&nbsp;)
+			</span>
+			<span class="pa-icon"><svg xmlns="http://www.w3.org/2000/svg" role="presentation" x="0px" y="0px" viewbox="0 0 60 60"><path fill="#519bf7" d="M56.3,30c0,-1.6 -0.2,-3.4 -0.6,-5h-3.1H42.2H30v10.6h14.8C44,39.3 42,42 39.1,43.9l8.8,6.8C53,46 56.3,39 56.3,30z"></path><path fill="#3db366" d="M30,57.5c6.7,0 13.1,-2.4 17.9,-6.8l-8.8,-6.8c-2.5,1.6 -5.6,2.4 -9.1,2.4c-7.2,0 -13.3,-4.7 -15.4,-11.2l-9.3,7.1C9.8,51.3 19.1,57.5 30,57.5z"></path><path fill="#fdc600" d="M5.3,42.2l9.3,-7.1c-0.5,-1.6 -0.8,-3.3 -0.8,-5.1s0.3,-3.5 0.8,-5.1l-9.3,-7.1C3.5,21.5 2.5,25.6 2.5,30S3.5,38.5 5.3,42.2z"></path><path fill="#f15b44" d="M40.1,17.4l8,-8C43.3,5.1 37,2.5 30,2.5C19.1,2.5 9.8,8.7 5.3,17.8l9.3,7.1c2.1,-6.5 8.2,-11.1 15.4,-11.1C33.9,13.7 37.4,15.1 40.1,17.4z"></path></svg></span>
+		</p>
+					</div>
+	
+		</div>
+	</div>
+
+	<div id="comment-form-twitter" class="comment-form-service">
+		<div class="comment-form-padder">
+			<div class="comment-form-avatar">
+				<img src="https://1.gravatar.com/avatar/ad516503a11cd5ca435acc9bb6523536?s=25&amp;d=identicon&amp;forcedefault=y&amp;r=G" alt="Twitter picture" width="25" class="no-grav">
+			</div>
+
+				<div class="comment-form-fields">
+				<input type="hidden" name="twitter_avatar" id="twitter-avatar" class="comment-meta-twitter" value="">
+				<input type="hidden" name="twitter_user_id" id="twitter-user_id" class="comment-meta-twitter" value="">
+				<input type="hidden" name="twitter_access_token" id="twitter-access_token" class="comment-meta-twitter" value="">
+						<p class="comment-form-posting-as pa-twitter">
+			<strong></strong>
+			You are commenting using your Twitter account.			<span class="comment-form-log-out">
+				(&nbsp;<a href="javascript:HighlanderComments.doExternalLogout( 'twitter' );">Log&nbsp;Out</a>&nbsp;/&nbsp;
+				<a href="#" onclick="javascript:HighlanderComments.switchAccount();return false;">Change</a>&nbsp;)
+			</span>
+			<span class="pa-icon"><svg xmlns="http://www.w3.org/2000/svg" role="presentation" viewbox="0 0 24 24"><rect x="0" fill="none" width="24" height="24"></rect><g><path fill="#1DA1F2" d="M22.23 5.924c-.736.326-1.527.547-2.357.646.847-.508 1.498-1.312 1.804-2.27-.793.47-1.67.812-2.606.996C18.325 4.498 17.258 4 16.078 4c-2.266 0-4.103 1.837-4.103 4.103 0 .322.036.635.106.935-3.41-.17-6.433-1.804-8.457-4.287-.353.607-.556 1.312-.556 2.064 0 1.424.724 2.68 1.825 3.415-.673-.022-1.305-.207-1.86-.514v.052c0 1.988 1.415 3.647 3.293 4.023-.344.095-.707.145-1.08.145-.265 0-.522-.026-.773-.074.522 1.63 2.038 2.817 3.833 2.85-1.404 1.1-3.174 1.757-5.096 1.757-.332 0-.66-.02-.98-.057 1.816 1.164 3.973 1.843 6.29 1.843 7.547 0 11.675-6.252 11.675-11.675 0-.178-.004-.355-.012-.53.802-.578 1.497-1.3 2.047-2.124z"></path></g></svg></span>
+		</p>
+					</div>
+	
+		</div>
+	</div>
+
+	<div id="comment-form-facebook" class="comment-form-service">
+		<div class="comment-form-padder">
+			<div class="comment-form-avatar">
+				<img src="https://1.gravatar.com/avatar/ad516503a11cd5ca435acc9bb6523536?s=25&amp;d=identicon&amp;forcedefault=y&amp;r=G" alt="Facebook photo" width="25" class="no-grav">
+			</div>
+
+				<div class="comment-form-fields">
+				<input type="hidden" name="fb_avatar" id="facebook-avatar" class="comment-meta-facebook" value="">
+				<input type="hidden" name="fb_user_id" id="facebook-user_id" class="comment-meta-facebook" value="">
+				<input type="hidden" name="fb_access_token" id="facebook-access_token" class="comment-meta-facebook" value="">
+						<p class="comment-form-posting-as pa-facebook">
+			<strong></strong>
+			You are commenting using your Facebook account.			<span class="comment-form-log-out">
+				(&nbsp;<a href="javascript:HighlanderComments.doExternalLogout( 'facebook' );">Log&nbsp;Out</a>&nbsp;/&nbsp;
+				<a href="#" onclick="javascript:HighlanderComments.switchAccount();return false;">Change</a>&nbsp;)
+			</span>
+			<span class="pa-icon"><svg xmlns="http://www.w3.org/2000/svg" role="presentation" viewbox="0 0 24 24"><rect x="0" fill="none" width="24" height="24"></rect><g><path fill="#3B5998" d="M20.007 3H3.993C3.445 3 3 3.445 3 3.993v16.013c0 .55.445.994.993.994h8.62v-6.97H10.27V11.31h2.346V9.31c0-2.325 1.42-3.59 3.494-3.59.993 0 1.847.073 2.096.106v2.43h-1.438c-1.128 0-1.346.537-1.346 1.324v1.734h2.69l-.35 2.717h-2.34V21h4.587c.548 0 .993-.445.993-.993V3.993c0-.548-.445-.993-.993-.993z"></path></g></svg></span>
+		</p>
+					</div>
+	
+		</div>
+	</div>
+
+
+	<div id="comment-form-load-service" class="comment-form-service">
+		<div class="comment-form-posting-as-cancel"><a href="javascript:HighlanderComments.cancelExternalWindow();">Cancel</a></div>
+		<p>Connecting to %s</p>
+	</div>
+
+</div>
+
+<script type="text/javascript">
+var highlander_expando_javascript = function(){
+	var input = document.createElement( 'input' ),
+	    comment = jQuery( '#comment' );
+
+	if ( 'placeholder' in input ) {
+		comment.attr( 'placeholder', jQuery( '.comment-textarea label' ).remove().text() );
+	}
+
+	// Expando Mode: start small, then auto-resize on first click + text length
+	jQuery( '#comment-form-identity' ).hide();
+	jQuery( '#comment-form-subscribe' ).hide();
+	jQuery( '#commentform .form-submit' ).hide();
+
+	comment.css( { 'height':'10px' } ).one( 'focus', function() {
+		var timer = setInterval( HighlanderComments.resizeCallback, 10 )
+		jQuery( this ).animate( { 'height': HighlanderComments.initialHeight } ).delay( 100 ).queue( function(n) { clearInterval( timer ); HighlanderComments.resizeCallback(); n(); } );
+		jQuery( '#comment-form-identity' ).slideDown();
+		jQuery( '#comment-form-subscribe' ).slideDown();
+		jQuery( '#commentform .form-submit' ).slideDown();
+	});
+}
+jQuery(document).ready( highlander_expando_javascript );
+</script>
+
+<div id="comment-form-subscribe">
+	<p class="comment-subscription-form"><input type="checkbox" name="subscribe" id="subscribe" value="subscribe" style="width: auto;"> <label class="subscribe-label" id="subscribe-label" for="subscribe" style="display: inline;">Notify me of new comments via email.</label></p><p class="post-subscription-form"><input type="checkbox" name="subscribe_blog" id="subscribe_blog" value="subscribe" style="width: auto;"> <label class="subscribe-label" id="subscribe-blog-label" for="subscribe_blog" style="display: inline;">Notify me of new posts via email.</label></p></div>
+
+
+
+
+<p class="form-submit"><input name="submit" type="submit" id="comment-submit" class="submit" value="Post Comment"> <input type='hidden' name='comment_post_ID' value='175402327' id='comment_post_ID'>
+<input type='hidden' name='comment_parent' id='comment_parent' value='0'>
+</p><p style="display: none;"><input type="hidden" id="akismet_comment_nonce" name="akismet_comment_nonce" value="c93dec03fc"></p>
+<input type="hidden" name="genseq" value="1588241425">
+<p style="display: none;"><input type="hidden" id="ak_js" name="ak_js" value="127"></p></form>	</div><!-- #respond -->
+	<div style="clear: both"></div>
+</div><!-- #comments -->
+
+		
+		</div><!-- #content -->
+	</div><!-- #primary -->
+
+	<div id="secondary" class="widget-area" role="complementary">
+				<aside id="search-2" class="widget widget_search">	<form method="get" id="searchform" class="searchform" action="https://feilipu.me/" role="search">
+		<label for="s" class="screen-reader-text">Search</label>
+		<input type="search" class="field" name="s" value="" id="s" placeholder="Search &hellip;">
+		<input type="submit" class="submit" id="searchsubmit" value="Search">
+	</form>
+</aside>		<aside id="recent-posts-2" class="widget widget_recent_entries">		<h1 class="widget-title">Recent Posts</h1>		<ul>
+											<li>
+					<a href="index.html" aria-current="page">Three Rings for the&nbsp;Z80</a>
+									</li>
+											<li>
+					<a href="https://feilipu.me/2018/04/14/old-sunshine-migrating-ultra5-to-sparc64/">Old Sunshine &#8211; migrating Ultra5 to&nbsp;Sparc64</a>
+									</li>
+											<li>
+					<a href="https://feilipu.me/2017/04/24/cyber-eyes-and-how-to-get-them/">Cyber eyes and how to get&nbsp;them</a>
+									</li>
+											<li>
+					<a href="https://feilipu.me/2017/02/26/yet-another-z180-v2/">Yet Another Z180 (YAZ180&nbsp;v2)</a>
+									</li>
+											<li>
+					<a href="https://feilipu.me/2017/02/22/characterising-am9511a-1-apu/">Characterising Am9511A-1 APU</a>
+									</li>
+					</ul>
+		</aside><aside id="twitter-2" class="widget widget_twitter"><h1 class="widget-title"><a href='http://twitter.com/_feilipu'>Twitter</a></h1><ul class='tweets'>
+			<li>
+				Finished building the new simplified 82C55 IDE Module for the RC2014. CPM-IDE delivers cheap and fast retro.… <a href="https://twitter.com/i/web/status/1255305192553287682"> twitter.com/i/web/status/1…</a> 				<a href="http://twitter.com/_feilipu/statuses/1255305192553287682" class="timesince">1&nbsp;day&nbsp;ago</a>
+			</li>
+
+			
+			<li>
+				RT @<a href='http://twitter.com/shieladixon'>shieladixon</a>: A picture of &#039;Hello World&#039; in a terminal will look really lame in amongst the videos of some of the great-looking games pe… 				<a href="http://twitter.com/_feilipu/statuses/1254542064592621568" class="timesince">3&nbsp;days&nbsp;ago</a>
+			</li>
+
+			
+			<li>
+				@<a href='http://twitter.com/benedictevans'>benedictevans</a> @<a href='http://twitter.com/NewtonMark'>NewtonMark</a> And not one of them support XMPP. This is why we can&#039;t have nice things. 				<a href="http://twitter.com/_feilipu/statuses/1249872395877277701" class="timesince">2&nbsp;weeks&nbsp;ago</a>
+			</li>
+
+			
+			<li>
+				Fixed a bug. <a href="https://twitter.com/arduinolibs/status/1246039705742950401"> twitter.com/arduinolibs/st…</a> 				<a href="http://twitter.com/_feilipu/statuses/1246046840534917120" class="timesince">3&nbsp;weeks&nbsp;ago</a>
+			</li>
+
+			
+			<li>
+				RT @<a href='http://twitter.com/arduinolibs'>arduinolibs</a>: FreeRTOS (10.3.0-4) for <a href='http://twitter.com/search?q=%23arduino'>#arduino</a> by @<a href='http://twitter.com/_feilipu'>_feilipu</a>
+<a href="https://arduinolibraries.info/libraries/free-rtos"> arduinolibraries.info/libraries/free…</a>
+Real Time Operating System implemented for AVR (Uno,… 				<a href="http://twitter.com/_feilipu/statuses/1246046763489693697" class="timesince">3&nbsp;weeks&nbsp;ago</a>
+			</li>
+
+			</ul><a href="http://twitter.com/_feilipu" class='twitter-follow-button' data-show-count='false' data-link-color='#08c1c3' data-text-color='#333333'>Follow @_feilipu</a></aside><aside id="recent-comments-2" class="widget widget_recent_comments"><h1 class="widget-title">Recent Comments</h1>				<table class="recentcommentsavatar" cellspacing="0" cellpadding="0" border="0">
+					<tr><td title="feilipu" class="recentcommentsavatartop" style="height:48px; width:48px;"><a href="https://feilipu.me" rel="nofollow"><img alt='' src='https://0.gravatar.com/avatar/f382ee34fc130c7f0126e42a741ac5f8?s=48&#038;d=identicon&#038;r=G' class='avatar avatar-48' height='48' width='48'></a></td><td class="recentcommentstexttop" style=""><a href="https://feilipu.me" rel="nofollow">feilipu</a> on <a href="https://feilipu.me/2013/03/08/goldilocks-1284p-arduino-uno-clone/comment-page-1/#comment-27251">“Goldilocks” 1284p Arduino UNO&hellip;</a></td></tr><tr><td title="karishma" class="recentcommentsavatarend" style="height:48px; width:48px;"><a href="https://kaalpanik.in" rel="nofollow"><img alt='' src='https://1.gravatar.com/avatar/7a8c656517c5c31331487e1e3ca9dec9?s=48&#038;d=identicon&#038;r=G' class='avatar avatar-48' height='48' width='48'></a></td><td class="recentcommentstextend" style=""><a href="https://kaalpanik.in" rel="nofollow">karishma</a> on <a href="https://feilipu.me/2013/03/08/goldilocks-1284p-arduino-uno-clone/comment-page-1/#comment-27250">“Goldilocks” 1284p Arduino UNO&hellip;</a></td></tr><tr><td title="feilipu" class="recentcommentsavatarend" style="height:48px; width:48px;"><a href="https://feilipu.me" rel="nofollow"><img alt='' src='https://0.gravatar.com/avatar/f382ee34fc130c7f0126e42a741ac5f8?s=48&#038;d=identicon&#038;r=G' class='avatar avatar-48' height='48' width='48'></a></td><td class="recentcommentstextend" style=""><a href="https://feilipu.me" rel="nofollow">feilipu</a> on <a href="https://feilipu.me/2015/03/06/nasa-eefs-on-avr-atmega/comment-page-1/#comment-25785">Implementing NASA EEFS on AVR&hellip;</a></td></tr><tr><td title="Shreevatsa" class="recentcommentsavatarend" style="height:48px; width:48px;"><img alt='' src='https://1.gravatar.com/avatar/4b6ab4ecdb54067467b3b1db14559176?s=48&#038;d=identicon&#038;r=G' class='avatar avatar-48' height='48' width='48'></td><td class="recentcommentstextend" style="">Shreevatsa on <a href="https://feilipu.me/2015/03/06/nasa-eefs-on-avr-atmega/comment-page-1/#comment-25784">Implementing NASA EEFS on AVR&hellip;</a></td></tr><tr><td title="Learning Arduino Ethernet Shield &#8211; maker.wiznet.io" class="recentcommentsavatarend" style="height:48px; width:48px;"><a href="https://maker.wiznet.io/2019/03/29/learning-arduino-ethernet-shield/" rel="nofollow"></a></td><td class="recentcommentstextend" style=""><a href="https://maker.wiznet.io/2019/03/29/learning-arduino-ethernet-shield/" rel="nofollow">Learning Arduino Eth&hellip;</a> on <a href="https://feilipu.me/2014/11/16/wiznet-w5500-ioshield-a/comment-page-1/#comment-22068">Wiznet W5500 and ioShield-A Wh&hellip;</a></td></tr>				</table>
+				</aside><aside id="wp_tag_cloud-2" class="widget wp_widget_tag_cloud"><h1 class="widget-title">Tags</h1><div style="overflow:hidden"><a href="https://feilipu.me/tag/1284p/" class="tag-cloud-link tag-link-88644331 tag-link-position-1" style="font-size: 16.375pt;" aria-label="1284p (13 items)">1284p</a>
+<a href="https://feilipu.me/tag/2010/" class="tag-cloud-link tag-link-243274 tag-link-position-2" style="font-size: 8pt;" aria-label="2010 (2 items)">2010</a>
+<a href="https://feilipu.me/tag/am9511a/" class="tag-cloud-link tag-link-562045290 tag-link-position-3" style="font-size: 10.75pt;" aria-label="am9511a (4 items)">am9511a</a>
+<a href="https://feilipu.me/tag/analogue/" class="tag-cloud-link tag-link-143961 tag-link-position-4" style="font-size: 13.875pt;" aria-label="analogue (8 items)">analogue</a>
+<a href="https://feilipu.me/tag/arduino/" class="tag-cloud-link tag-link-134289 tag-link-position-5" style="font-size: 22pt;" aria-label="arduino (39 items)">arduino</a>
+<a href="https://feilipu.me/tag/arduino-mega/" class="tag-cloud-link tag-link-18025397 tag-link-position-6" style="font-size: 9.5pt;" aria-label="arduino mega (3 items)">arduino mega</a>
+<a href="https://feilipu.me/tag/arduino-uno/" class="tag-cloud-link tag-link-43035356 tag-link-position-7" style="font-size: 13.25pt;" aria-label="arduino uno (7 items)">arduino uno</a>
+<a href="https://feilipu.me/tag/arm/" class="tag-cloud-link tag-link-255243 tag-link-position-8" style="font-size: 10.75pt;" aria-label="arm (4 items)">arm</a>
+<a href="https://feilipu.me/tag/armhf/" class="tag-cloud-link tag-link-81974783 tag-link-position-9" style="font-size: 9.5pt;" aria-label="armhf (3 items)">armhf</a>
+<a href="https://feilipu.me/tag/atmega328p/" class="tag-cloud-link tag-link-36041071 tag-link-position-10" style="font-size: 13.25pt;" aria-label="atmega328p (7 items)">atmega328p</a>
+<a href="https://feilipu.me/tag/atmega1284/" class="tag-cloud-link tag-link-62826506 tag-link-position-11" style="font-size: 15.5pt;" aria-label="atmega1284 (11 items)">atmega1284</a>
+<a href="https://feilipu.me/tag/atmega1284p/" class="tag-cloud-link tag-link-106055939 tag-link-position-12" style="font-size: 15pt;" aria-label="ATmega1284p (10 items)">ATmega1284p</a>
+<a href="https://feilipu.me/tag/atmel/" class="tag-cloud-link tag-link-294049 tag-link-position-13" style="font-size: 18.5pt;" aria-label="atmel (20 items)">atmel</a>
+<a href="https://feilipu.me/tag/audio/" class="tag-cloud-link tag-link-413 tag-link-position-14" style="font-size: 9.5pt;" aria-label="audio (3 items)">audio</a>
+<a href="https://feilipu.me/tag/avr/" class="tag-cloud-link tag-link-484647 tag-link-position-15" style="font-size: 21pt;" aria-label="avr (32 items)">avr</a>
+<a href="https://feilipu.me/tag/avrdude/" class="tag-cloud-link tag-link-13320458 tag-link-position-16" style="font-size: 11.75pt;" aria-label="avrdude (5 items)">avrdude</a>
+<a href="https://feilipu.me/tag/avrisp/" class="tag-cloud-link tag-link-31371161 tag-link-position-17" style="font-size: 8pt;" aria-label="avrisp (2 items)">avrisp</a>
+<a href="https://feilipu.me/tag/clock/" class="tag-cloud-link tag-link-124955 tag-link-position-18" style="font-size: 10.75pt;" aria-label="clock (4 items)">clock</a>
+<a href="https://feilipu.me/tag/dac/" class="tag-cloud-link tag-link-146375 tag-link-position-19" style="font-size: 13.875pt;" aria-label="dac (8 items)">dac</a>
+<a href="https://feilipu.me/tag/diy/" class="tag-cloud-link tag-link-4315 tag-link-position-20" style="font-size: 10.75pt;" aria-label="diy (4 items)">diy</a>
+<a href="https://feilipu.me/tag/dogbot/" class="tag-cloud-link tag-link-4773944 tag-link-position-21" style="font-size: 10.75pt;" aria-label="dogbot (4 items)">dogbot</a>
+<a href="https://feilipu.me/tag/ds1307/" class="tag-cloud-link tag-link-15457472 tag-link-position-22" style="font-size: 10.75pt;" aria-label="ds1307 (4 items)">ds1307</a>
+<a href="https://feilipu.me/tag/duemilianova/" class="tag-cloud-link tag-link-150435200 tag-link-position-23" style="font-size: 8pt;" aria-label="duemilianova (2 items)">duemilianova</a>
+<a href="https://feilipu.me/tag/eagle/" class="tag-cloud-link tag-link-71653 tag-link-position-24" style="font-size: 9.5pt;" aria-label="eagle (3 items)">eagle</a>
+<a href="https://feilipu.me/tag/eclipseide/" class="tag-cloud-link tag-link-7216104 tag-link-position-25" style="font-size: 9.5pt;" aria-label="eclipse ide (3 items)">eclipse ide</a>
+<a href="https://feilipu.me/tag/ethermega/" class="tag-cloud-link tag-link-78269142 tag-link-position-26" style="font-size: 9.5pt;" aria-label="EtherMega (3 items)">EtherMega</a>
+<a href="https://feilipu.me/tag/ethernet/" class="tag-cloud-link tag-link-111179 tag-link-position-27" style="font-size: 9.5pt;" aria-label="ethernet (3 items)">ethernet</a>
+<a href="https://feilipu.me/tag/freertos/" class="tag-cloud-link tag-link-5285607 tag-link-position-28" style="font-size: 21.125pt;" aria-label="freertos (33 items)">freertos</a>
+<a href="https://feilipu.me/tag/freetronics/" class="tag-cloud-link tag-link-36639162 tag-link-position-29" style="font-size: 17.75pt;" aria-label="freetronics (17 items)">freetronics</a>
+<a href="https://feilipu.me/tag/goldilocks/" class="tag-cloud-link tag-link-1018455 tag-link-position-30" style="font-size: 15pt;" aria-label="goldilocks (10 items)">goldilocks</a>
+<a href="https://feilipu.me/tag/hardware/" class="tag-cloud-link tag-link-79 tag-link-position-31" style="font-size: 9.5pt;" aria-label="hardware (3 items)">hardware</a>
+<a href="https://feilipu.me/tag/howto/" class="tag-cloud-link tag-link-1921 tag-link-position-32" style="font-size: 9.5pt;" aria-label="how to (3 items)">how to</a>
+<a href="https://feilipu.me/tag/ide/" class="tag-cloud-link tag-link-7746 tag-link-position-33" style="font-size: 9.5pt;" aria-label="ide (3 items)">ide</a>
+<a href="https://feilipu.me/tag/internet/" class="tag-cloud-link tag-link-22 tag-link-position-34" style="font-size: 11.75pt;" aria-label="internet (5 items)">internet</a>
+<a href="https://feilipu.me/tag/ioe/" class="tag-cloud-link tag-link-273102 tag-link-position-35" style="font-size: 12.625pt;" aria-label="ioe (6 items)">ioe</a>
+<a href="https://feilipu.me/tag/iot/" class="tag-cloud-link tag-link-2121118 tag-link-position-36" style="font-size: 12.625pt;" aria-label="iot (6 items)">iot</a>
+<a href="https://feilipu.me/tag/ipv4/" class="tag-cloud-link tag-link-644086 tag-link-position-37" style="font-size: 9.5pt;" aria-label="ipv4 (3 items)">ipv4</a>
+<a href="https://feilipu.me/tag/lcd/" class="tag-cloud-link tag-link-8001 tag-link-position-38" style="font-size: 9.5pt;" aria-label="lcd (3 items)">lcd</a>
+<a href="https://feilipu.me/tag/littlebird/" class="tag-cloud-link tag-link-4571483 tag-link-position-39" style="font-size: 11.75pt;" aria-label="littlebird (5 items)">littlebird</a>
+<a href="https://feilipu.me/tag/littlebirdelectronics/" class="tag-cloud-link tag-link-69636987 tag-link-position-40" style="font-size: 10.75pt;" aria-label="little bird electronics (4 items)">little bird electronics</a>
+<a href="https://feilipu.me/tag/lm335z/" class="tag-cloud-link tag-link-74913638 tag-link-position-41" style="font-size: 8pt;" aria-label="lm335z (2 items)">lm335z</a>
+<a href="https://feilipu.me/tag/lts/" class="tag-cloud-link tag-link-1248716 tag-link-position-42" style="font-size: 8pt;" aria-label="lts (2 items)">lts</a>
+<a href="https://feilipu.me/tag/mcp4822/" class="tag-cloud-link tag-link-126061922 tag-link-position-43" style="font-size: 9.5pt;" aria-label="mcp4822 (3 items)">mcp4822</a>
+<a href="https://feilipu.me/tag/nbn/" class="tag-cloud-link tag-link-1172925 tag-link-position-44" style="font-size: 10.75pt;" aria-label="nbn (4 items)">nbn</a>
+<a href="https://feilipu.me/tag/nbnco/" class="tag-cloud-link tag-link-33615685 tag-link-position-45" style="font-size: 8pt;" aria-label="nbnco (2 items)">nbnco</a>
+<a href="https://feilipu.me/tag/network/" class="tag-cloud-link tag-link-3385 tag-link-position-46" style="font-size: 9.5pt;" aria-label="network (3 items)">network</a>
+<a href="https://feilipu.me/tag/open-music-labs/" class="tag-cloud-link tag-link-76792866 tag-link-position-47" style="font-size: 9.5pt;" aria-label="open music labs (3 items)">open music labs</a>
+<a href="https://feilipu.me/tag/open-source/" class="tag-cloud-link tag-link-25 tag-link-position-48" style="font-size: 9.5pt;" aria-label="open source (3 items)">open source</a>
+<a href="https://feilipu.me/tag/overclock/" class="tag-cloud-link tag-link-948257 tag-link-position-49" style="font-size: 9.5pt;" aria-label="overclock (3 items)">overclock</a>
+<a href="https://feilipu.me/tag/pololu/" class="tag-cloud-link tag-link-8180836 tag-link-position-50" style="font-size: 15pt;" aria-label="Pololu (10 items)">Pololu</a>
+<a href="https://feilipu.me/tag/practicalarduino/" class="tag-cloud-link tag-link-150435201 tag-link-position-51" style="font-size: 11.75pt;" aria-label="practical arduino (5 items)">practical arduino</a>
+<a href="https://feilipu.me/tag/ps3/" class="tag-cloud-link tag-link-12564 tag-link-position-52" style="font-size: 8pt;" aria-label="ps3 (2 items)">ps3</a>
+<a href="https://feilipu.me/tag/psubuntu/" class="tag-cloud-link tag-link-946811 tag-link-position-53" style="font-size: 8pt;" aria-label="psubuntu (2 items)">psubuntu</a>
+<a href="https://feilipu.me/tag/ram/" class="tag-cloud-link tag-link-59756 tag-link-position-54" style="font-size: 8pt;" aria-label="RAM (2 items)">RAM</a>
+<a href="https://feilipu.me/tag/rc2014/" class="tag-cloud-link tag-link-217819934 tag-link-position-55" style="font-size: 9.5pt;" aria-label="rc2014 (3 items)">rc2014</a>
+<a href="https://feilipu.me/tag/reference/" class="tag-cloud-link tag-link-10919 tag-link-position-56" style="font-size: 10.75pt;" aria-label="reference (4 items)">reference</a>
+<a href="https://feilipu.me/tag/retrocomputing/" class="tag-cloud-link tag-link-384531 tag-link-position-57" style="font-size: 9.5pt;" aria-label="retrocomputing (3 items)">retrocomputing</a>
+<a href="https://feilipu.me/tag/retrograde/" class="tag-cloud-link tag-link-255863 tag-link-position-58" style="font-size: 9.5pt;" aria-label="retrograde (3 items)">retrograde</a>
+<a href="https://feilipu.me/tag/review/" class="tag-cloud-link tag-link-1745 tag-link-position-59" style="font-size: 10.75pt;" aria-label="review (4 items)">review</a>
+<a href="https://feilipu.me/tag/robot/" class="tag-cloud-link tag-link-90436 tag-link-position-60" style="font-size: 11.75pt;" aria-label="robot (5 items)">robot</a>
+<a href="https://feilipu.me/tag/rugged-circuits/" class="tag-cloud-link tag-link-150454187 tag-link-position-61" style="font-size: 9.5pt;" aria-label="rugged circuits (3 items)">rugged circuits</a>
+<a href="https://feilipu.me/tag/seeedstudio/" class="tag-cloud-link tag-link-33155302 tag-link-position-62" style="font-size: 13.25pt;" aria-label="seeedstudio (7 items)">seeedstudio</a>
+<a href="https://feilipu.me/tag/shield/" class="tag-cloud-link tag-link-250072 tag-link-position-63" style="font-size: 10.75pt;" aria-label="shield (4 items)">shield</a>
+<a href="https://feilipu.me/tag/sourceforge/" class="tag-cloud-link tag-link-261245 tag-link-position-64" style="font-size: 12.625pt;" aria-label="sourceforge (6 items)">sourceforge</a>
+<a href="https://feilipu.me/tag/sparkfun/" class="tag-cloud-link tag-link-4012181 tag-link-position-65" style="font-size: 8pt;" aria-label="sparkfun (2 items)">sparkfun</a>
+<a href="https://feilipu.me/tag/svp-328/" class="tag-cloud-link tag-link-150435210 tag-link-position-66" style="font-size: 8pt;" aria-label="svp-328 (2 items)">svp-328</a>
+<a href="https://feilipu.me/tag/synthesizer/" class="tag-cloud-link tag-link-214192 tag-link-position-67" style="font-size: 9.5pt;" aria-label="synthesizer (3 items)">synthesizer</a>
+<a href="https://feilipu.me/tag/ubuntu/" class="tag-cloud-link tag-link-255 tag-link-position-68" style="font-size: 9.5pt;" aria-label="ubuntu (3 items)">ubuntu</a>
+<a href="https://feilipu.me/tag/w5100/" class="tag-cloud-link tag-link-7771895 tag-link-position-69" style="font-size: 9.5pt;" aria-label="w5100 (3 items)">w5100</a>
+<a href="https://feilipu.me/tag/w5200/" class="tag-cloud-link tag-link-115243934 tag-link-position-70" style="font-size: 9.5pt;" aria-label="w5200 (3 items)">w5200</a>
+<a href="https://feilipu.me/tag/wiznet/" class="tag-cloud-link tag-link-7771896 tag-link-position-71" style="font-size: 9.5pt;" aria-label="wiznet (3 items)">wiznet</a>
+<a href="https://feilipu.me/tag/z80/" class="tag-cloud-link tag-link-286278 tag-link-position-72" style="font-size: 12.625pt;" aria-label="Z80 (6 items)">Z80</a>
+<a href="https://feilipu.me/tag/z88dk/" class="tag-cloud-link tag-link-31278751 tag-link-position-73" style="font-size: 9.5pt;" aria-label="z88dk (3 items)">z88dk</a>
+<a href="https://feilipu.me/tag/z180/" class="tag-cloud-link tag-link-100847889 tag-link-position-74" style="font-size: 10.75pt;" aria-label="Z180 (4 items)">Z180</a>
+<a href="https://feilipu.me/tag/zilog/" class="tag-cloud-link tag-link-715437 tag-link-position-75" style="font-size: 13.25pt;" aria-label="zilog (7 items)">zilog</a></div></aside><aside id="archives-2" class="widget widget_archive"><h1 class="widget-title">Archives</h1>		<label class="screen-reader-text" for="archives-dropdown-2">Archives</label>
+		<select id="archives-dropdown-2" name="archive-dropdown">
+			
+			<option value="">Select Month</option>
+				<option value='https://feilipu.me/2018/05/'> May 2018 &nbsp;(1)</option>
+	<option value='https://feilipu.me/2018/04/'> April 2018 &nbsp;(1)</option>
+	<option value='https://feilipu.me/2017/04/'> April 2017 &nbsp;(1)</option>
+	<option value='https://feilipu.me/2017/02/'> February 2017 &nbsp;(2)</option>
+	<option value='https://feilipu.me/2016/09/'> September 2016 &nbsp;(1)</option>
+	<option value='https://feilipu.me/2016/06/'> June 2016 &nbsp;(2)</option>
+	<option value='https://feilipu.me/2016/05/'> May 2016 &nbsp;(2)</option>
+	<option value='https://feilipu.me/2015/11/'> November 2015 &nbsp;(1)</option>
+	<option value='https://feilipu.me/2015/10/'> October 2015 &nbsp;(1)</option>
+	<option value='https://feilipu.me/2015/09/'> September 2015 &nbsp;(2)</option>
+	<option value='https://feilipu.me/2015/06/'> June 2015 &nbsp;(2)</option>
+	<option value='https://feilipu.me/2015/04/'> April 2015 &nbsp;(3)</option>
+	<option value='https://feilipu.me/2015/03/'> March 2015 &nbsp;(2)</option>
+	<option value='https://feilipu.me/2015/02/'> February 2015 &nbsp;(1)</option>
+	<option value='https://feilipu.me/2014/12/'> December 2014 &nbsp;(3)</option>
+	<option value='https://feilipu.me/2014/11/'> November 2014 &nbsp;(2)</option>
+	<option value='https://feilipu.me/2014/10/'> October 2014 &nbsp;(1)</option>
+	<option value='https://feilipu.me/2014/08/'> August 2014 &nbsp;(1)</option>
+	<option value='https://feilipu.me/2014/04/'> April 2014 &nbsp;(1)</option>
+	<option value='https://feilipu.me/2014/03/'> March 2014 &nbsp;(2)</option>
+	<option value='https://feilipu.me/2014/01/'> January 2014 &nbsp;(1)</option>
+	<option value='https://feilipu.me/2013/12/'> December 2013 &nbsp;(2)</option>
+	<option value='https://feilipu.me/2013/11/'> November 2013 &nbsp;(2)</option>
+	<option value='https://feilipu.me/2013/10/'> October 2013 &nbsp;(1)</option>
+	<option value='https://feilipu.me/2013/09/'> September 2013 &nbsp;(1)</option>
+	<option value='https://feilipu.me/2013/08/'> August 2013 &nbsp;(1)</option>
+	<option value='https://feilipu.me/2013/07/'> July 2013 &nbsp;(1)</option>
+	<option value='https://feilipu.me/2013/05/'> May 2013 &nbsp;(1)</option>
+	<option value='https://feilipu.me/2013/04/'> April 2013 &nbsp;(2)</option>
+	<option value='https://feilipu.me/2013/03/'> March 2013 &nbsp;(2)</option>
+	<option value='https://feilipu.me/2013/02/'> February 2013 &nbsp;(1)</option>
+	<option value='https://feilipu.me/2012/12/'> December 2012 &nbsp;(1)</option>
+	<option value='https://feilipu.me/2012/07/'> July 2012 &nbsp;(1)</option>
+	<option value='https://feilipu.me/2012/03/'> March 2012 &nbsp;(1)</option>
+	<option value='https://feilipu.me/2012/02/'> February 2012 &nbsp;(1)</option>
+	<option value='https://feilipu.me/2012/01/'> January 2012 &nbsp;(2)</option>
+	<option value='https://feilipu.me/2011/12/'> December 2011 &nbsp;(1)</option>
+	<option value='https://feilipu.me/2011/10/'> October 2011 &nbsp;(2)</option>
+	<option value='https://feilipu.me/2011/09/'> September 2011 &nbsp;(1)</option>
+	<option value='https://feilipu.me/2011/05/'> May 2011 &nbsp;(2)</option>
+	<option value='https://feilipu.me/2011/02/'> February 2011 &nbsp;(2)</option>
+	<option value='https://feilipu.me/2010/12/'> December 2010 &nbsp;(1)</option>
+	<option value='https://feilipu.me/2010/10/'> October 2010 &nbsp;(1)</option>
+	<option value='https://feilipu.me/2010/08/'> August 2010 &nbsp;(1)</option>
+	<option value='https://feilipu.me/2010/07/'> July 2010 &nbsp;(3)</option>
+	<option value='https://feilipu.me/2010/06/'> June 2010 &nbsp;(1)</option>
+	<option value='https://feilipu.me/2010/05/'> May 2010 &nbsp;(2)</option>
+	<option value='https://feilipu.me/2010/04/'> April 2010 &nbsp;(1)</option>
+	<option value='https://feilipu.me/2010/03/'> March 2010 &nbsp;(3)</option>
+	<option value='https://feilipu.me/2010/02/'> February 2010 &nbsp;(1)</option>
+	<option value='https://feilipu.me/2010/01/'> January 2010 &nbsp;(1)</option>
+	<option value='https://feilipu.me/2009/09/'> September 2009 &nbsp;(1)</option>
+
+		</select>
+
+<script type="text/javascript">
+/* <![CDATA[ */
+(function() {
+	var dropdown = document.getElementById( "archives-dropdown-2" );
+	function onSelectChange() {
+		if ( dropdown.options[ dropdown.selectedIndex ].value !== '' ) {
+			document.location.href = this.options[ this.selectedIndex ].value;
+		}
+	}
+	dropdown.onchange = onSelectChange;
+})();
+/* ]]> */
+</script>
+
+		</aside><aside id="meta-2" class="widget widget_meta"><h1 class="widget-title">Meta</h1>			<ul>
+			<li><a href="https://wordpress.com/start?ref=wplogin">Register</a></li>			<li><a href="https://feilipu.wordpress.com/wp-login.php">Log in</a></li>
+			<li><a href="https://feilipu.me/feed/">Entries feed</a></li>
+			<li><a href="https://feilipu.me/comments/feed/">Comments feed</a></li>
+			<li><a href="https://wordpress.com/" title="Powered by WordPress, state-of-the-art semantic personal publishing platform.">WordPress.com</a></li>			</ul>
+			</aside>	</div><!-- #secondary -->
+
+	</div><!-- #main -->
+
+	<footer id="colophon" class="site-footer" role="contentinfo">
+		<div class="site-info">
+						<a href="https://wordpress.com/?ref=footer_custom_acom" rel="nofollow">A WordPress.com Website</a>.
+			
+					</div><!-- .site-info -->
+	</footer><!-- #colophon -->
+</div><!-- #page -->
+
+<!--  -->
+<script src='//0.gravatar.com/js/gprofiles.js?ver=202018y'></script>
+<script>
+var WPGroHo = {"my_hash":""};
+</script>
+<script type='text/javascript' src='https://s1.wp.com/wp-content/mu-plugins/gravatar-hovercards/wpgroho.js?m=1380573781h'></script>
+
+	<script>
+		//initialize and attach hovercards to all gravatars
+		jQuery( document ).ready( function( $ ) {
+
+			if (typeof Gravatar === "undefined"){
+				return;
+			}
+
+			if ( typeof Gravatar.init !== "function" ) {
+				return;
+			}			
+
+			Gravatar.profile_cb = function( hash, id ) {
+				WPGroHo.syncProfileData( hash, id );
+			};
+			Gravatar.my_hash = WPGroHo.my_hash;
+			Gravatar.init( 'body', '#wp-admin-bar-my-account' );
+		});
+	</script>
+
+		<div style="display:none">
+	<div class="grofile-hash-map-f382ee34fc130c7f0126e42a741ac5f8">
+	</div>
+	<div class="grofile-hash-map-7a8c656517c5c31331487e1e3ca9dec9">
+	</div>
+	<div class="grofile-hash-map-4b6ab4ecdb54067467b3b1db14559176">
+	</div>
+	</div>
+<script>
+var HighlanderComments = {"loggingInText":"Logging In\u2026","submittingText":"Posting Comment\u2026","postCommentText":"Post Comment","connectingToText":"Connecting to %s","commentingAsText":"%1$s: You are commenting using your %2$s account.","logoutText":"Log Out","loginText":"Log In","connectURL":"https:\/\/feilipu.wordpress.com\/public.api\/connect\/?action=request&domain=feilipu.me","logoutURL":"https:\/\/feilipu.wordpress.com\/wp-login.php?action=logout&_wpnonce=0c5b071188","homeURL":"https:\/\/feilipu.me\/","postID":"175402327","gravDefault":"identicon","enterACommentError":"Please enter a comment","enterEmailError":"Please enter your email address here","invalidEmailError":"Invalid email address","enterAuthorError":"Please enter your name here","gravatarFromEmail":"This picture will show whenever you leave a comment. Click to customize it.","logInToExternalAccount":"Log in to use details from one of these accounts.","change":"Change","changeAccount":"Change Account","comment_registration":"","userIsLoggedIn":"","isJetpack":"","text_direction":"ltr"};
+</script>
+<script type='text/javascript' src='https://s0.wp.com/_static/??/wp-content/js/jquery/jquery.autoresize.js,/wp-content/mu-plugins/highlander-comments/script.js?m=1573483029j'></script>
+
+	<div id="carousel-reblog-box">
+		<form action="#" name="carousel-reblog">
+			<textarea id="carousel-reblog-content" name="carousel-reblog-content" placeholder="Add your thoughts here... (optional)"></textarea>
+			<label for="carousel-reblog-to-blog-id" id="carousel-reblog-lblogid">Post to</label>
+			<select name="carousel-reblog-to-blog-id" id="carousel-reblog-to-blog-id">
+						</select>
+
+			<div class="submit">
+				<span class="canceltext"><a href="#" class="cancel">Cancel</a></span>
+				<input type="submit" name="carousel-reblog-submit" class="button" id="carousel-reblog-submit" value="Reblog Post">
+				<input type="hidden" id="carousel-reblog-blog-id" value="47691308">
+				<input type="hidden" id="carousel-reblog-blog-url" value="https://feilipu.me">
+				<input type="hidden" id="carousel-reblog-blog-title" value="feilipu">
+				<input type="hidden" id="carousel-reblog-post-url" value="">
+				<input type="hidden" id="carousel-reblog-post-title" value="">
+			</div>
+
+			<input type="hidden" id="_wpnonce" name="_wpnonce" value="87d51ee98a"><input type="hidden" name="_wp_http_referer" value="/2018/05/28/three-rings-for-the-z80/">		</form>
+
+		<div class="arrow"></div>
+	</div>
+
+	<script type="text/javascript">
+		window.WPCOM_sharing_counts = {"https:\/\/feilipu.me\/2018\/05\/28\/three-rings-for-the-z80\/":175402327};
+	</script>
+				<script src='https://platform.twitter.com/widgets.js?ver=20111117'></script>
+<link rel='stylesheet' id='all-css-0-3' href='https://s0.wp.com/_static/??/wp-content/plugins/gutenberg-blocks/jetpack-layout-grid/blocks/front.css,/wp-content/mu-plugins/carousel/jetpack-carousel.css?m=1583834955j&cssminify=yes' type='text/css' media='all'>
+<script>
+var actionbardata = {"siteID":"47691308","siteName":"feilipu","siteURL":"https:\/\/feilipu.me","icon":"<img alt='' src='https:\/\/secure.gravatar.com\/blavatar\/2c4c433db8fa21afff1d02c748721d04?s=50&d=https%3A%2F%2Fs2.wp.com%2Fi%2Flogo%2Fwpcom-gray-white.png' class='avatar avatar-50' height='50' width='50' \/>","canManageOptions":"","canCustomizeSite":"","isFollowing":"","themeSlug":"pub\/truly-minimal","signupURL":"https:\/\/wordpress.com\/start\/","loginURL":"https:\/\/wordpress.com\/log-in?redirect_to=https%3A%2F%2Ffeilipu.me%2F2018%2F05%2F28%2Fthree-rings-for-the-z80%2F&signup_flow=account&domain=feilipu.me","themeURL":"","xhrURL":"https:\/\/feilipu.me\/wp-admin\/admin-ajax.php","nonce":"1ecd0bcd1e","isSingular":"1","isFolded":"","isLoggedIn":"","isMobile":"","subscribeNonce":"<input type=\"hidden\" id=\"_wpnonce\" name=\"_wpnonce\" value=\"643844dda5\" \/>","referer":"https:\/\/feilipu.me\/2018\/05\/28\/three-rings-for-the-z80\/","canFollow":"1","feedID":"10763267","statusMessage":"","customizeLink":"https:\/\/feilipu.wordpress.com\/wp-admin\/customize.php?url=https%3A%2F%2Ffeilipu.wordpress.com%2F2018%2F05%2F28%2Fthree-rings-for-the-z80%2F","postID":"175402327","shortlink":"https:\/\/wp.me\/p3e6GE-bRY9N","canEditPost":"","editLink":"https:\/\/wordpress.com\/post\/feilipu.me\/175402327","statsLink":"https:\/\/wordpress.com\/stats\/post\/175402327\/feilipu.me","i18n":{"view":"View site","follow":"Follow","following":"Following","edit":"Edit","login":"Log in","signup":"Sign up","customize":"Customize","report":"Report this content","themeInfo":"Get theme: Truly Minimal","shortlink":"Copy shortlink","copied":"Copied","followedText":"New posts from this site will now appear in your <a href=\"https:\/\/wordpress.com\/read\">Reader<\/a>","foldBar":"Collapse this bar","unfoldBar":"Expand this bar","editSubs":"Manage subscriptions","viewReader":"View site in Reader","viewReadPost":"View post in Reader","subscribe":"Sign me up","enterEmail":"Enter your email address","followers":"","alreadyUser":"Already have a WordPress.com account? <a href=\"https:\/\/wordpress.com\/log-in?redirect_to=https%3A%2F%2Ffeilipu.me%2F2018%2F05%2F28%2Fthree-rings-for-the-z80%2F&signup_flow=account&domain=feilipu.me\">Log in now.<\/a>","stats":"Stats"}};
+</script>
+<script>
+var jetpackCarouselStrings = {"widths":[370,700,1000,1200,1400,2000],"is_logged_in":"","lang":"en","ajaxurl":"https:\/\/feilipu.me\/wp-admin\/admin-ajax.php","nonce":"8efbb26b2b","display_exif":"1","display_geo":"1","single_image_gallery":"1","single_image_gallery_media_file":"","background_color":"black","comment":"Comment","post_comment":"Post Comment","write_comment":"Write a Comment...","loading_comments":"Loading Comments...","download_original":"View full size <span class=\"photo-size\">{0}<span class=\"photo-size-times\">\u00d7<\/span>{1}<\/span>","no_comment_text":"Please be sure to submit some text with your comment.","no_comment_email":"Please provide an email address to comment.","no_comment_author":"Please provide your name to comment.","comment_post_error":"Sorry, but there was an error posting your comment. Please try again later.","comment_approved":"Your comment was approved.","comment_unapproved":"Your comment is in moderation.","camera":"Camera","aperture":"Aperture","shutter_speed":"Shutter Speed","focal_length":"Focal Length","copyright":"Copyright","comment_registration":"0","require_name_email":"1","login_url":"https:\/\/feilipu.wordpress.com\/wp-login.php?redirect_to=https%3A%2F%2Ffeilipu.me%2F2018%2F05%2F28%2Fthree-rings-for-the-z80%2F","blog_id":"47691308","meta_data":["camera","aperture","shutter_speed","focal_length","copyright"],"local_comments_commenting_as":"<fieldset><label for=\"email\">Email (Required)<\/label> <input type=\"text\" name=\"email\" class=\"jp-carousel-comment-form-field jp-carousel-comment-form-text-field\" id=\"jp-carousel-comment-form-email-field\" \/><\/fieldset><fieldset><label for=\"author\">Name (Required)<\/label> <input type=\"text\" name=\"author\" class=\"jp-carousel-comment-form-field jp-carousel-comment-form-text-field\" id=\"jp-carousel-comment-form-author-field\" \/><\/fieldset><fieldset><label for=\"url\">Website<\/label> <input type=\"text\" name=\"url\" class=\"jp-carousel-comment-form-field jp-carousel-comment-form-text-field\" id=\"jp-carousel-comment-form-url-field\" \/><\/fieldset>","reblog":"Reblog","reblogged":"Reblogged","reblog_add_thoughts":"Add your thoughts here... (optional)","reblogging":"Reblogging...","post_reblog":"Post Reblog","stats_query_args":"blog=47691308&v=wpcom&tz=10&user_id=0&subd=feilipu","is_public":"1","reblog_enabled":""};
+</script>
+<script>
+var sharing_js_options = {"lang":"en","counts":"1","is_stats_active":"1"};
+</script>
+<script type='text/javascript' src='https://s0.wp.com/_static/??-eJydUltSwzAMvBCuWyDT9oPhKIzrKKkSv7DstOH0KLQpbcmEgS9rtFp5tZI8BKG9S+CSbEiW0KGGcFw09CBvoeApWSBSNYwoOm1yCfTFREqyA1f6OEDBm75CYxYW3X2zYHKNjmSVjRGECQSUmNDV4oTIzfN2/fi4LKT21np36n2KJ4Q17xlif34W6DqEw69lDaSgdCsiEH7AfbnNYhRpsOUBmZRhr1xpIP5/nJ3xnGQfSXCo27NpE3rTHthrGfJOpphNL9hGtMoMgzjVYa0S/jRjjkUtBmHQtaLyOpOo8Di1xsFlbsW+BNNPLe/KGlUyLnYqSqsoQeRI+A5ixKHZJffHDinyXmiOpIfZB9IlmpqEwrf46/ztHVxXTfylVfSZgB0838uYmNPXIllI4mmxlG/8s6x8tDP1w0GIyiiMkvYq8uGML5Ne7cuq2KyL9bYoVs0nYKpe8A=='></script>
+<script type='text/javascript'>
+( 'fetch' in window ) || document.write( '<script src="https://s0.wp.com/wp-includes/js/dist/vendor/wp-polyfill-fetch.min.js?m=1573572739h&#038;ver=3.0.0"></scr' + 'ipt>' );( document.contains ) || document.write( '<script src="https://s1.wp.com/wp-includes/js/dist/vendor/wp-polyfill-node-contains.min.js?m=1540208548h&#038;ver=3.42.0"></scr' + 'ipt>' );( window.DOMRect ) || document.write( '<script src="https://s0.wp.com/wp-includes/js/dist/vendor/wp-polyfill-dom-rect.min.js?m=1585663916h&#038;ver=3.42.0"></scr' + 'ipt>' );( window.URL && window.URL.prototype && window.URLSearchParams ) || document.write( '<script src="https://s2.wp.com/wp-includes/js/dist/vendor/wp-polyfill-url.min.js?m=1585663916h&#038;ver=3.6.4"></scr' + 'ipt>' );( window.FormData && window.FormData.prototype.keys ) || document.write( '<script src="https://s1.wp.com/wp-includes/js/dist/vendor/wp-polyfill-formdata.min.js?m=1550600082h&#038;ver=3.0.12"></scr' + 'ipt>' );( Element.prototype.matches && Element.prototype.closest ) || document.write( '<script src="https://s2.wp.com/wp-includes/js/dist/vendor/wp-polyfill-element-closest.min.js?m=1540208548h&#038;ver=2.0.2"></scr' + 'ipt>' );
+( window.URL && window.URL.prototype && window.URLSearchParams ) || document.write( '<script src="https://s2.wp.com/wp-content/plugins/gutenberg-core/7.8.1/vendor/wp-polyfill-url.min.7490158b.js?m=1586214842h&#038;ver=3.6.4"></scr' + 'ipt>' );
+( window.DOMRect ) || document.write( '<script src="https://s1.wp.com/wp-content/plugins/gutenberg-core/7.8.1/vendor/wp-polyfill-dom-rect.7e21c103.js?m=1586214842h&#038;ver=3.42.0"></scr' + 'ipt>' );
+</script>
+<script type='text/javascript'>
+var windowOpen;
+			jQuery( document.body ).on( 'click', 'a.share-twitter', function() {
+				// If there's another sharing window open, close it.
+				if ( 'undefined' !== typeof windowOpen ) {
+					windowOpen.close();
+				}
+				windowOpen = window.open( jQuery( this ).attr( 'href' ), 'wpcomtwitter', 'menubar=1,resizable=1,width=600,height=350' );
+				return false;
+			});
+var windowOpen;
+			jQuery( document.body ).on( 'click', 'a.share-facebook', function() {
+				// If there's another sharing window open, close it.
+				if ( 'undefined' !== typeof windowOpen ) {
+					windowOpen.close();
+				}
+				windowOpen = window.open( jQuery( this ).attr( 'href' ), 'wpcomfacebook', 'menubar=1,resizable=1,width=600,height=400' );
+				return false;
+			});
+</script>
+<script type="text/javascript">
+// <![CDATA[
+(function() {
+try{
+  if ( window.external &&'msIsSiteMode' in window.external) {
+    if (window.external.msIsSiteMode()) {
+      var jl = document.createElement('script');
+      jl.type='text/javascript';
+      jl.async=true;
+      jl.src='/wp-content/plugins/ie-sitemode/custom-jumplist.php';
+      var s = document.getElementsByTagName('script')[0];
+      s.parentNode.insertBefore(jl, s);
+    }
+  }
+}catch(e){}
+})();
+// ]]>
+</script>		<iframe src='https://widgets.wp.com/likes/master.html?ver=20190321#ver=20190321' scrolling='no' id='likes-master' name='likes-master' style='display:none;'></iframe>
+		<div id='likes-other-gravatars'><div class="likes-text"><span>%d</span> bloggers like this:</div><ul class="wpl-avatars sd-like-gravatars"></ul></div>
+<script src="//stats.wp.com/w.js?61" type="text/javascript" async="" defer=""></script>
+<script type="text/javascript">
+_tkq = window._tkq || [];
+_stq = window._stq || [];
+_tkq.push(['storeContext', {'blog_id':'47691308','blog_tz':'10','user_lang':'en','blog_lang':'en','user_id':'0'}]);
+_stq.push(['view', {'blog':'47691308','v':'wpcom','tz':'10','user_id':'0','post':'175402327','subd':'feilipu'}]);
+_stq.push(['extra', {'crypt':'UE40eW5QN0p8M2Y/RE1TaVhzUzFMbjdWNHpwZGhTayxPSUFCMGNrd29+Smw0TDhnZmRTK0hlRi9QSGh6bi9GXVhBJWIlZlR5U1JMLU8/MkNtblkvY1dzSWJCdm5+a3NQcGsleVV5VXlydU1KL2gvLFhfenhmODA9eCs/aTR3Li45YXF5RXx3VS5pLHMrRE1nUHp5ZW1YMXVYelFyfmt+S3FPT0h+QlU0ajdYS0ZyLFdtT2s0MjNuXzRCXXx5dDB5PT8xJkx4PTNQTW1fcHF8cWk0bC9xem58cS80RUktK1FfUC1UczJMTDNNeUZhYj9IYiw/RFU1SXxLdXhHeSx5XVVQU2stc0ZyVyszZ0gwNk9+elRITUwmTUgyWndFY2xhQ0pFcmVtLlt4bUlzTC9udHBlamZGX1VlUWo0NkF6Ri8vb0h6QXFkSWksOQ=='}]);
+_stq.push([ 'clickTrackerInit', '47691308', '175402327' ]);
+	</script>
+<noscript><img src="https://pixel.wp.com/b.gif?v=noscript" style="height:0px;width:0px;overflow:hidden" alt=""></noscript>
+<script>
+if ( 'object' === typeof wpcom_mobile_user_agent_info ) {
+
+	wpcom_mobile_user_agent_info.init();
+	var mobileStatsQueryString = "";
+	
+	if( false !== wpcom_mobile_user_agent_info.matchedPlatformName )
+		mobileStatsQueryString += "&x_" + 'mobile_platforms' + '=' + wpcom_mobile_user_agent_info.matchedPlatformName;
+	
+	if( false !== wpcom_mobile_user_agent_info.matchedUserAgentName )
+		mobileStatsQueryString += "&x_" + 'mobile_devices' + '=' + wpcom_mobile_user_agent_info.matchedUserAgentName;
+	
+	if( wpcom_mobile_user_agent_info.isIPad() )
+		mobileStatsQueryString += "&x_" + 'ipad_views' + '=' + 'views';
+
+	if( "" != mobileStatsQueryString ) {
+		new Image().src = document.location.protocol + '//pixel.wp.com/g.gif?v=wpcom-no-pv' + mobileStatsQueryString + '&baba=' + Math.random();
+	}
+	
+}
+</script>
+</body>
+</html>
